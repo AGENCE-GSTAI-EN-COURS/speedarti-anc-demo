@@ -24,6 +24,12 @@ jobs:
           node-version: '22'
       - name: Check JavaScript syntax
         run: node --check assets/app.js
+      - name: Install public demo test tools
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test demo on desktop and mobile
+        run: npm run test:e2e
       - name: Ensure private-source folders are absent
         run: |
           for dir in domain application repositories adapters integrations knowledge migration migrations tests e2e v3; do
@@ -41,8 +47,14 @@ jobs:
       - uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Collect only static demo files
+        run: |
+          mkdir -p site/assets
+          cp index.html site/
+          cp assets/app.js assets/styles.css site/assets/
+          touch site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: 'site'
       - id: deployment
         uses: actions/deploy-pages@v4
