@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b51eb">
+  <meta name="description" content="Découvrez une démonstration interactive du module Études ANC de SpeedArti. Données fictives, aucun calcul professionnel.">
+  <title>SpeedArti — Démonstration Études ANC</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script src="./assets/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Aller au contenu</a>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigation de la démo">
+      <div class="brand"><div class="brand-symbol" aria-hidden="true">S</div><div><strong>SpeedArti</strong><span>Études ANC · Démonstration</span></div></div>
+      <div class="sidebar-label">ESPACE DE DÉMONSTRATION</div>
+      <nav class="sidebar-nav" aria-label="Modules">
+        <button class="nav-link active" type="button" data-target="overview" aria-current="page"><span class="nav-icon">▦</span> Vue d'ensemble</button>
+        <button class="nav-link" type="button" data-target="dossier"><span class="nav-icon">▤</span> Dossier ANC</button>
+        <button class="nav-link" type="button" data-target="soil"><span class="nav-icon">◫</span> Sondages &amp; sols</button>
+        <button class="nav-link" type="button" data-target="porchet"><span class="nav-icon">◉</span> Essai Porchet</button>
+        <button class="nav-link" type="button" data-target="plan"><span class="nav-icon">◇</span> Implantation</button>
+        <button class="nav-link" type="button" data-target="infiltration"><span class="nav-icon">▥</span> Infiltration</button>
+        <button class="nav-link" type="button" data-target="report"><span class="nav-icon">▧</span> Rapport</button>
+        <button class="nav-link" type="button" data-target="angel"><span class="nav-icon">✦</span> Ángel</button>
+      </nav>
+      <div class="sidebar-footer"><span class="mini-dot"></span> Démo publique • sans connexion<div class="privacy-note">Aucune donnée n'est envoyée ou enregistrée. Le moteur métier est dans un dépôt privé.</div></div>
+    </aside>
+
+    <main class="content" id="main">
+      <header class="topbar">
+        <div class="breadcrumb">SpeedArti <span>/</span> Études ANC <span>/</span> <strong id="breadcrumb-current">Vue d'ensemble</strong></div>
+        <div class="top-actions"><span class="pill pill-outline"><span class="mini-dot"></span> Données fictives</span><button class="btn btn-primary btn-small" data-target="dossier" type="button">Explorer la démo <span aria-hidden="true">→</span></button></div>
+      </header>
+
+      <div class="main-inner">
+        <div class="alert" role="note"><span class="alert-icon">ⓘ</span><div><strong>Mode démonstration publique</strong> — Tous les chiffres, noms, plans et réponses sont fictifs ou préremplis. Les boutons simulent un parcours ; <strong>aucun calcul ANC réel, aucune IA connectée et aucun document réglementaire validé</strong>.</div></div>
+
+        <section class="page active" id="page-overview" data-page="overview" aria-labelledby="title-overview">
+          <div class="hero">
+            <div><div class="eyebrow">SPEEDARTI · MODULE MÉTIER</div><h1 id="title-overview">Des études ANC, du terrain jusqu'au rapport.</h1><p>Un aperçu interactif du parcours envisagé : dossiers, sondages, Porchet, plans, dimensionnement et accompagnement Ángel.</p>
+            <div class="hero-buttons"><button class="btn btn-white" data-target="dossier">Découvrir le module <span>→</span></button><button class="btn btn-outline-white" data-target="angel">Voir Ángel ✦</button></div></div>
+            <div class="hero-decoration" aria-hidden="true"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><div class="hero-letter">ANC</div><div class="hero-micro">Une étude, un seul parcours</div></div>
+          </div>
+          <div class="section-heading"><div><h2>Un dossier, toutes les étapes</h2><p>Parcours illustratif : cliquez sur une étape pour découvrir son écran.</p></div></div>
+          <div class="feature-grid">
+            <button type="button" class="feature-card" data-target="dossier"><span class="feature-number">01</span><span class="feature-icon">▤</span><strong>Dossier & parcelle</strong><small>Informations terrain et projet</small><span class="feature-link">Explorer →</span></button>
+            <button type="button" class="feature-card" data-target="soil"><span class="feature-number">02</span><span class="feature-icon">◫</span><strong>Étude du sol</strong><small>Horizon par horizon</small><span class="feature-link">Explorer →</span></button>
+            <button type="button" class="feature-card" data-target="porchet"><span class="feature-number">03</span><span class="feature-icon">◉</span><strong>Essai Porchet</strong><small>Relevés et observations</small><span class="feature-link">Explorer →</span></button>
+            <button type="button" class="feature-card" data-target="plan"><span class="feature-number">04</span><span class="feature-icon">◇</span><strong>Plan & contraintes</strong><small>Implantation illustrative</small><span class="feature-link">Explorer →</span></button>
+            <button type="button" class="feature-card" data-target="infiltration"><span class="feature-number">05</span><span class="feature-icon">▥</span><strong>Dimensionnement</strong><small>Propositions à valider</small><span class="feature-link">Explorer →</span></button>
+            <button type="button" class="feature-card" data-target="report"><span class="feature-number">06</span><span class="feature-icon">▧</span><strong>Rapport</strong><small>Un dossier prêt à relire</small><span class="feature-link">Explorer →</span></button>
+          </div>
+          <div class="wide-note"><div class="note-icon">✦</div><div><strong>Ángel accompagne le professionnel</strong><p>Elle pourra retrouver les éléments du dossier et suggérer la prochaine étape. Les calculs sensibles et les conclusions resteront soumis à validation humaine.</p></div><button class="btn btn-quiet" data-target="angel">Découvrir Ángel →</button></div>
+        </section>
+
+        <section class="page" id="page-dossier" data-page="dossier" aria-labelledby="title-dossier" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ÉTAPE 01</div><h1 id="title-dossier">Dossier de l'étude</h1><p>Exemple de fiche chantier pour préparer une étude ANC.</p></div><span class="status-chip">Brouillon de démo</span></div>
+          <div class="panel-grid">
+            <article class="panel panel-wide"><div class="panel-heading"><h2>Informations générales</h2><span class="tag">Données fictives</span></div><div class="form-grid">
+              <label>Référence de l'étude<input id="field-reference" type="text" value="ANC-DÉMO-001" maxlength="80" autocomplete="off"></label>
+              <label>Nom du dossier<input id="field-project" type="text" value="Maison individuelle — Exemple" maxlength="100" autocomplete="off"></label>
+              <label>Commune<input id="field-city" type="text" value="Commune fictive" maxlength="80" autocomplete="off"></label>
+              <label>Type de projet<select id="field-project-type"><option>Réhabilitation</option><option>Construction neuve</option></select></label>
+              <label>Nombre d'équivalents-habitants<input id="field-eh" type="text" value="5 EH" readonly aria-describedby="simulation-note"></label>
+              <label>Statut de l'étude<input value="À préparer / vérifier" readonly></label>
+            </div><p class="helper" id="simulation-note">Le nombre d'EH présenté est une donnée préremplie du scénario. Il n'est pas calculé ici.</p><button type="button" class="btn btn-primary" id="demo-save">Enregistrer dans l'aperçu</button><span id="save-feedback" role="status" class="feedback"></span></article>
+            <article class="panel"><div class="panel-heading"><h2>Suivi de l'étude</h2></div><div class="step-list"><div class="step active"><span>✓</span> Dossier créé</div><div class="step"><span>2</span> Relevés terrain</div><div class="step"><span>3</span> Essai Porchet</div><div class="step"><span>4</span> Implantation</div><div class="step"><span>5</span> Validation professionnelle</div></div><div class="info-box">La démo n'enregistre aucune donnée. Elle illustre seulement l'interface du futur module.</div></article>
+          </div>
+        </section>
+
+        <section class="page" id="page-soil" data-page="soil" aria-labelledby="title-soil" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ÉTAPE 02</div><h1 id="title-soil">Sondages &amp; pédologie</h1><p>Visualisez la description de plusieurs horizons sur un même sondage.</p></div><span class="status-chip">À vérifier sur le terrain</span></div>
+          <div class="panel-grid">
+            <article class="panel panel-wide"><div class="panel-heading"><h2>Sondage fictif S1</h2><span class="tag">2 horizons</span></div><div class="soil-layout"><div class="soil-column" aria-hidden="true"><div class="soil-layer soil-one"><span>0–40 cm</span></div><div class="soil-layer soil-two"><span>40–100 cm</span></div></div><div class="soil-records">
+              <div class="soil-record"><div class="soil-head"><strong>Horizon H1</strong><span>0 à 40 cm</span></div><div class="soil-tags" id="soil-tags-one"><span>Limon</span><span>Argile</span></div><p>Texture et structure : observations à confirmer par un professionnel.</p></div>
+              <div class="soil-record"><div class="soil-head"><strong>Horizon H2</strong><span>40 à 100 cm</span></div><div class="soil-tags" id="soil-tags-two"><span>Argile</span><span>Calcaire</span></div><p>Présence d'eau, hydromorphie, racines et compacité : champs prévus dans le module.</p></div>
+            </div></div></article>
+            <article class="panel"><div class="panel-heading"><h2>Points d'attention</h2></div><div class="check-row"><span class="check-icon">◎</span><div><strong>Plusieurs types de sol</strong><small>Par horizon, sans limitation à un seul choix</small></div></div><div class="check-row"><span class="check-icon">◎</span><div><strong>Sondages multiples</strong><small>Observations liées à la même étude</small></div></div><div class="check-row"><span class="check-icon">◎</span><div><strong>Photographies</strong><small>Pièces jointes prévues dans la version intégrable</small></div></div><div class="info-box">Descriptions illustratives : aucune interprétation du sol n'est calculée sur ce site.</div></article>
+          </div>
+        </section>
+
+        <section class="page" id="page-porchet" data-page="porchet" aria-labelledby="title-porchet" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ÉTAPE 03</div><h1 id="title-porchet">Essai Porchet</h1><p>Un aperçu de la saisie et du suivi des relevés.</p></div><span class="status-chip status-warning">Formule à valider</span></div>
+          <div class="panel-grid">
+            <article class="panel panel-wide"><div class="panel-heading"><h2>Relevés d'exemple</h2><span class="tag">Données simulées</span></div><div class="table-scroll"><table><thead><tr><th>Relevé</th><th>Durée</th><th>Volume fictif</th><th>Statut</th></tr></thead><tbody><tr><td>01</td><td>10 min</td><td>120 ml</td><td><span class="tiny-status">Exemple</span></td></tr><tr><td>02</td><td>10 min</td><td>132 ml</td><td><span class="tiny-status">Exemple</span></td></tr><tr><td>03</td><td>10 min</td><td>128 ml</td><td><span class="tiny-status">Exemple</span></td></tr></tbody></table></div><div class="chart-title">Courbe indicative — données fictives</div><div class="chart" aria-label="Graphique illustratif avec trois barres de hauteur variable"><div class="chart-bar" style="height:64%"><span>1</span></div><div class="chart-bar" style="height:82%"><span>2</span></div><div class="chart-bar" style="height:74%"><span>3</span></div></div></article>
+            <article class="panel"><div class="panel-heading"><h2>Ce que prévoit ANC</h2></div><div class="metric-large"><span>Coefficient K d'exemple</span><strong id="porchet-k">45 <small>mm/h</small></strong></div><div class="info-box warning"><strong>Non validé.</strong> Le chiffre illustré est un scénario prérempli, pas le résultat d'un calcul sur cette page. La formule doit être confirmée avec les documents de Fred.</div></article>
+          </div>
+        </section>
+
+        <section class="page" id="page-plan" data-page="plan" aria-labelledby="title-plan" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ÉTAPE 04</div><h1 id="title-plan">Plan &amp; implantation</h1><p>Vue schématique, sans données cadastrales ni localisation réelle.</p></div><span class="status-chip">Plan de démonstration</span></div>
+          <div class="panel-grid">
+            <article class="panel panel-wide"><div class="panel-heading"><h2>Exemple de parcelle</h2><span class="tag">Schéma non à l'échelle</span></div>
+              <div class="plan-canvas"><svg viewBox="0 0 660 350" role="img" aria-label="Parcelle fictive avec maison, filière et tranchées dessinées à titre d'exemple">
+                <defs><pattern id="grid" width="22" height="22" patternUnits="userSpaceOnUse"><path d="M 22 0 L 0 0 0 22" fill="none" stroke="#d9e6f9" stroke-width="1"/></pattern></defs>
+                <rect width="660" height="350" rx="12" fill="#f4f8ff"/><rect width="660" height="350" fill="url(#grid)"/>
+                <path d="M72 47 L582 67 L608 296 L92 312 Z" fill="#ecf6ed" stroke="#739b83" stroke-width="3" stroke-dasharray="9 6"/>
+                <path d="M126 104 h148 v92 h-148 z" fill="#d7e4fb" stroke="#426eae" stroke-width="3"/>
+                <path d="M118 104 l81 -45 83 45" fill="#a6bfe6" stroke="#426eae" stroke-width="3"/><text x="200" y="158" text-anchor="middle" font-size="18" fill="#244c85" font-weight="700">MAISON</text>
+                <rect x="345" y="138" width="91" height="69" rx="7" fill="#cae6fc" stroke="#1574bc" stroke-width="3"/>
+                <text x="389" y="166" text-anchor="middle" font-size="12" fill="#14508e" font-weight="700">FILIÈRE</text><text x="389" y="184" text-anchor="middle" font-size="11" fill="#14508e">fictive</text>
+                <g id="plan-trenches" stroke="#158a91" stroke-width="8" stroke-linecap="round"><line x1="488" y1="126" x2="488" y2="252"/><line x1="520" y1="126" x2="520" y2="252"/><line x1="552" y1="126" x2="552" y2="252"/></g>
+                <path d="M275 165 H344" stroke="#316cc6" stroke-width="5" stroke-dasharray="8 6" fill="none"/>
+                <g id="plan-well"><circle cx="126" cy="267" r="16" fill="#b1edfb" stroke="#1583a8" stroke-width="3"/><text x="151" y="271" font-size="13" fill="#236184">Puits fictif</text></g>
+                <text x="102" y="294" font-size="12" fill="#416c4a">Limite de parcelle fictive</text>
+              </svg></div>
+              <div class="legend"><span><i class="legend-dot house"></i> Bâtiment</span><span><i class="legend-dot system"></i> Filière</span><span><i class="legend-dot trench"></i> Tranchées</span><span><i class="legend-dot parcel"></i> Parcelle</span></div>
+            </article>
+            <article class="panel"><div class="panel-heading"><h2>Éléments visibles</h2></div>
+              <label class="toggle-label"><input type="checkbox" id="show-trenches" checked> Afficher les tranchées fictives</label>
+              <label class="toggle-label"><input type="checkbox" id="show-well" checked> Afficher le puits fictif</label>
+              <div class="info-box">Les positions, formes et distances ne sont pas calculées ni géoréférencées. Le vrai moteur de cartographie reste privé.</div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" id="page-infiltration" data-page="infiltration" aria-labelledby="title-infiltration" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ÉTAPE 05</div><h1 id="title-infiltration">Infiltration après traitement</h1><p>Visualisation d'un exemple prérempli, sans calculateur public.</p></div><span class="status-chip status-warning">Validation obligatoire</span></div>
+          <div class="stats-grid"><div class="stat-panel"><span>Equivalent-habitants</span><strong id="stat-eh">5 EH</strong><small>Exemple fictif</small></div><div class="stat-panel"><span>Perméabilité</span><strong id="stat-k">45 mm/h</strong><small>Valeur préremplie</small></div><div class="stat-panel"><span>Surface illustrée</span><strong id="stat-area">8,33 m²</strong><small>Non recalculée</small></div><div class="stat-panel"><span>Tranchée illustrative</span><strong id="stat-trench">12 m</strong><small>Non validée</small></div></div>
+          <div class="panel-grid"><article class="panel panel-wide"><div class="panel-heading"><h2>Scénario de démonstration</h2></div><label>Choisir un exemple<select class="scenario-select" id="scenario-select"><option value="house">Maison individuelle — exemple favorable</option><option value="constrained">Terrain contraint — K faible</option><option value="complex">Étude complexe — données à confirmer</option></select></label><div class="inline-banner" id="scenario-message" role="status">Exemple prérempli : les résultats affichés sont fictifs et ne changent pas par calcul.</div></article><article class="panel"><div class="panel-heading"><h2>Contrôle professionnel</h2></div><div class="check-row"><span class="check-icon">!</span><div><strong>Décision non automatisée</strong><small>Le dimensionnement et la filière nécessitent une validation terrain.</small></div></div><div id="scenario-warning" class="info-box warning">La situation réelle doit être étudiée avec les règles applicables.</div></article></div>
+        </section>
+
+        <section class="page" id="page-report" data-page="report" aria-labelledby="title-report" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ÉTAPE 06</div><h1 id="title-report">Rapport &amp; annexes</h1><p>Exemple de présentation d'une étude, sans valeur réglementaire.</p></div><button class="btn btn-secondary" id="print-sample" type="button">Imprimer le spécimen</button></div>
+          <article class="report-sheet"><div class="report-watermark">SPÉCIMEN</div><div class="report-topline"><strong>SpeedArti</strong><span>ÉTUDES ANC · DOCUMENT D'EXEMPLE</span></div><div class="report-kicker">PRÉVISUALISATION</div><h2>Étude d'assainissement non collectif</h2><p class="report-subtitle">Document fictif — démonstration de mise en page</p><div class="report-rule"></div><div class="report-meta"><div><small>Référence</small><strong id="report-reference">ANC-DÉMO-001</strong></div><div><small>Projet</small><strong id="report-project">Maison individuelle — Exemple</strong></div><div><small>Statut</small><strong>Non validé</strong></div></div><h3>Sommaire illustratif</h3><ol><li>Présentation de la parcelle et du projet</li><li>Observations pédologiques et sondages</li><li>Relevés Porchet</li><li>Plan d'implantation et contraintes</li><li>Dimensionnement et préconisations à vérifier</li><li>Annexes, photos et validation professionnelle</li></ol><div class="report-footer"><strong>NON CONTRACTUEL — NE PAS UTILISER POUR UNE ÉTUDE RÉELLE</strong><span>Ángel propose — le professionnel valide.</span></div></article>
+        </section>
+
+        <section class="page" id="page-angel" data-page="angel" aria-labelledby="title-angel" hidden>
+          <div class="page-heading"><div><div class="eyebrow">ACCOMPAGNEMENT IA</div><h1 id="title-angel">Ángel, l'assistant SpeedArti</h1><p>Une simulation textuelle de l'accompagnement prévu pour le module ANC.</p></div><span class="status-chip">IA non connectée</span></div>
+          <div class="angel-layout"><article class="panel panel-chat"><div class="chat-head"><div class="angel-avatar">✦</div><div><strong>Ángel ANC</strong><span>Simulation uniquement — réponses préécrites</span></div></div><div class="chat-messages" id="chat-messages" role="log" aria-live="polite"><div class="bubble assistant"><strong>Ángel · Simulation</strong><p>Bonjour ! Je peux te montrer comment l'assistant pourrait retrouver un sondage, expliquer les étapes d'un essai Porchet ou préparer un rapport à faire valider.</p></div></div><form id="chat-form" class="chat-form"><label for="chat-input" class="sr-only">Votre question de démonstration</label><input id="chat-input" type="text" maxlength="160" placeholder="Exemple : que faut-il vérifier pour Porchet ?" autocomplete="off" required><button class="btn btn-primary" type="submit">Envoyer</button></form></article><article class="panel"><div class="panel-heading"><h2>Questions à essayer</h2></div><div class="prompt-group"><button type="button" class="prompt-example" data-question="Que faut-il vérifier pour Porchet ?">Que faut-il vérifier pour Porchet ?</button><button type="button" class="prompt-example" data-question="Comment décrire un sondage ?">Comment décrire un sondage ?</button><button type="button" class="prompt-example" data-question="Peux-tu préparer un rapport ?">Peux-tu préparer un rapport ?</button></div><div class="info-box warning"><strong>Important :</strong> aucun service IA ni compte SpeedArti n'est relié à cette démo. La version privée pourra ensuite se connecter à Ángel après validation d'Anne-So.</div></article></div>
+        </section>
+
+        <footer class="global-footer"><span>© SpeedArti · Démonstration publique ANC</span><span>Sans calculateur métier • Sans données réelles • Sans compte</span></footer>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
