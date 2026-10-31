@@ -76,6 +76,8 @@
   // Autoriser seulement les déplacements entre écrans, l'édition locale de champs
   // et l'impression du spécimen ; interdire les calculs et actions métier non publiés.
   document.addEventListener("click",event=>{
+    // Les onglets internes du tableur Porchet appartiennent exclusivement à celui-ci.
+    if(event.target.closest("[data-px-tab]"))return;
     const action=event.target.closest("[data-public-action]");
     if(action){
       const name=action.dataset.publicAction;
