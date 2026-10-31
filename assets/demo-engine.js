@@ -296,6 +296,7 @@ function addPorchet(button,reading=false){
 function topAction(action){
   if(action==="reset"){
     localStorage.removeItem(KEY);
+    window.ANCPorchetExcel?.resetPublic?.();
     window.location.reload();return true;
   }
   if(action==="calculate"){simulate(null,"Synthèse fictive mise à jour");return true;}

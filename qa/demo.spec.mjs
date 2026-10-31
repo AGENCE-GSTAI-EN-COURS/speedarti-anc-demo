@@ -40,8 +40,9 @@ test("les plans AXIS et les annotations proviennent de la vraie interface V3",as
 
 test("l'essai Porchet montre le statut professionnel et ses relevés",async({page})=>{
   await page.goto("/#porchet");
-  await expect(page.locator("#axis-porchet-validation")).toBeVisible();
-  await expect(page.locator("#axis-porchet-validation")).toContainText("NON VALIDÉE");
+  await expect(page.locator("#porchet .px-tabs .px-tab")).toHaveCount(5);
+  await expect(page.locator("#porchet .px-table tbody tr")).toHaveCount(12);
+  await expect(page.locator("#porchet .px-note")).toContainText("cases jaunes");
 });
 
 test("les fonctions confidentielles ne sont pas exécutées dans le public",async({page})=>{
