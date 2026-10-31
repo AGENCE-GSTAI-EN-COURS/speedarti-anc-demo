@@ -10,7 +10,7 @@
   const $=(s,root=document)=>root.querySelector(s);
   const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const id=()=>("ANC-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7));
-  const fresh=(title="Nouvelle étude de démonstration")=>({id:id(),name:title,createdAt:new Date().toISOString(),fields:{},cells:{},toggles:{},porchet:null,archived:false});
+  const fresh=(title="Nouvelle étude de démonstration")=>({id:id(),name:title,createdAt:new Date().toISOString(),fields:{},cells:{},toggles:{},porchet:null,archived:false,isNew:true});
   function initial(){const example=fresh("Étude ANC — exemple");return {version:1,activeId:example.id,studies:[example],clients:[],updatedAt:new Date().toISOString()};}
   function read(){try{const data=JSON.parse(localStorage.getItem(KEY)||"null");return data?.version===1&&Array.isArray(data.studies)?data:initial();}catch{return initial()}}
   function save(db){db.updatedAt=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(db));return true}catch{notice("Enregistrement impossible : espace de stockage insuffisant.");return false}}
@@ -209,7 +209,20 @@
   }
   function mount(section,slug){
     bindFields(section);
-    if(slug==="dossier")updateParcelTotal();
+    if(slug==="dossier"){
+      const db=read(),st=current(db);
+      if(st&&st.isNew&&!Object.keys(st.fields).length){
+        for(const el of $("[data-path]",section)){
+          if(el.matches("input:not([type=hidden]),textarea"))el.value="";
+          if(el.matches("select"))el.selectedIndex=0;
+        }
+        const title=$('[data-path="title"]',section);
+        if(title)title.value=st.name;
+        const reference=$('[data-path="reference"]',section);
+        if(reference)reference.value=st.id;
+      }
+      updateParcelTotal();
+    }
     if(slug==="sondages"){restoreBoreholes(section);syncMultiselects(section)}
     if(slug==="etudes")studiesPanel(section);
     if(slug==="clients")clientsPanel(section);
@@ -237,6 +250,93 @@
     copy.id=id();copy.name=(copy.name||"Étude")+" — copie";copy.archived=false;
     db.studies.push(copy);save(db);notice("Dossier dupliqué, indépendant de l'original.");
     window.ANCPublicNavigate?.("etudes");
+  }
+
+  function createVersion(){
+    beforeNavigate();
+    const db=read(),st=current(db);if(!st)return false;
+    st.versions=st.versions||[];
+    st.versions.push({
+      at:new Date().toISOString(),fields:structuredClone(st.fields),
+      cells:structuredClone(st.cells),porchet:st.porchet
+    });
+    if(st.versions.length>8)st.versions.shift();
+    const ok=save(db);
+    notice(ok?"Version du dossier enregistrée dans ce navigateur.":"Impossible d'enregistrer la version.");
+    return true;
+  }
+  function exportedData(){
+    beforeNavigate();
+    const body=JSON.stringify({type:"ANC_DEMONSTRATION_V3",version:1,data:read()},null,2);
+    const blob=new Blob([body],{type:"application/json"});
+    const uri=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=uri;a.download="speedarti-anc-demo-dossier.json";
+    a.click();setTimeout(()=>URL.revokeObjectURL(uri),500);
+    notice("Dossier de démonstration exporté en JSON.");
+  }
+  function importData(){
+    const input=document.createElement("input");
+    input.type="file";input.accept=".json,application/json";
+    input.addEventListener("change",async()=>{
+      const file=input.files?.[0];if(!file)return;
+      try{
+        if(file.size>5*1024*1024)throw Error("Fichier trop volumineux.");
+        const payload=JSON.parse(await file.text());
+        if(payload.type!=="ANC_DEMONSTRATION_V3"||payload.version!==1)throw Error("Fichier de démonstration incompatible.");
+        const db=payload.data;
+        if(!db||!Array.isArray(db.studies)||db.studies.length>30||db.studies.length===0||
+           !Array.isArray(db.clients)||db.clients.length>100||
+           !db.studies.some(st=>st.id===db.activeId))throw Error("Structure du dossier non valide.");
+        const clean={
+          version:1,activeId:db.activeId,updatedAt:new Date().toISOString(),
+          studies:db.studies.map(st=>{
+            if(typeof st.id!=="string"||st.id.length>100)throw Error("Identifiant invalide.");
+            const validFields={};
+            if(!st.fields||typeof st.fields!=="object")throw Error("Champs absents.");
+            for(const [k,v] of Object.entries(st.fields)){
+              if(k.length>130||typeof v!=="string"&&typeof v!=="number"&&typeof v!=="boolean"&&!Array.isArray(v))
+                throw Error("Champ incorrect.");
+              validFields[k]=Array.isArray(v)?v.filter(x=>typeof x==="string").slice(0,80):v;
+            }
+            // Les fragments HTML tiers ne sont pas importés (protection XSS).
+            return {id:st.id,name:String(st.name||"Étude importée").slice(0,160),
+              fields:validFields,cells:{},toggles:{},
+              porchet:typeof st.porchet==="string"&&st.porchet.length<120000?st.porchet:null,
+              archived:!!st.archived,createdAt:String(st.createdAt||""),
+              versions:[]};
+          }),
+          clients:db.clients.map(c=>({
+            id:String(c.id||id()),firstName:String(c.firstName||"").slice(0,120),
+            lastName:String(c.lastName||"").slice(0,120),city:String(c.city||"").slice(0,120)
+          }))
+        };
+        if(!save(clean))throw Error("Stockage local indisponible.");
+        loadPorchet(current(clean));
+        localStorage.removeItem("speedarti-anc-public-sprint4-v1");
+        location.hash="etudes";location.reload();
+      }catch(error){notice("Import impossible : "+error.message);}
+    },{once:true});
+    input.click();
+  }
+  function topAction(name){
+    if(name==="reset"){
+      localStorage.removeItem(KEY);
+      localStorage.removeItem("speedarti-anc-public-sprint4-v1");
+      localStorage.removeItem(PORCHET_KEY);
+      location.hash="etudes";location.reload();
+      return true;
+    }
+    if(name==="version")return createVersion();
+    if(name==="calculate"){
+      beforeNavigate();
+      window.ANCPublicNavigate?.("rapport");
+      notice("Rapport actualisé avec les informations réellement saisies. Les calculs réglementaires nécessitent la validation du professionnel.");
+      return true;
+    }
+    if(name==="export"){exportedData();return true}
+    if(name==="import"){importData();return true}
+    return false;
   }
   function action(event){
     const el=event.target.closest("button");if(!el)return false;
@@ -281,5 +381,5 @@
     if(el.closest(".axis-touch-soils")&&el.matches('input[type="checkbox"]'))onMultiSelect(el);
     if(el.dataset?.path&&el.closest("#public-sections"))commitElement(el);
   },true);
-  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report};
+  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction};
 })();
