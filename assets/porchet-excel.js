@@ -38,10 +38,11 @@ function getBook(){
  if(st){if(!st.porchetExcel||st.porchetExcel.version!==1)st.porchetExcel=defaultBook();return st.porchetExcel;}
  return publicBook();
 }
-function writeBook(){
+function writeBook(book){
+ const current=book||getBook();
  const st=privateState();
- if(st){linkPrivate(st,getBook());window.SpeedArtiANC.save?.();return true;}
- try{localStorage.setItem(PUBLIC_KEY,JSON.stringify(getBook()));return true;}
+ if(st){linkPrivate(st,current);window.SpeedArtiANC.save?.();return true;}
+ try{localStorage.setItem(PUBLIC_KEY,JSON.stringify(current));return true;}
  catch{return false;}
 }
 function cloned(value){return JSON.parse(JSON.stringify(value));}
@@ -222,7 +223,7 @@ function applyInput(input){
  }
  const y=window.scrollY,focusKey=field?"[data-px-field='"+field+"']":"[data-px-grad='"+gradIndex+"']";
  const selection={start:input.selectionStart,end:input.selectionEnd};
- const ok=writeBook();
+ const ok=writeBook(book);
  draw();
  const after=$(focusKey,section);
  if(after){after.focus({preventScroll:true});try{after.setSelectionRange(selection.start,selection.end)}catch{}}
@@ -243,7 +244,7 @@ document.addEventListener("click",event=>{
  const book=getBook();
  if(!KEYS.includes(t.dataset.pxTab))return;
  book.active=t.dataset.pxTab;
- writeBook();
+ writeBook(book);
  draw();
 },true);
 const observer=new MutationObserver(()=>{
