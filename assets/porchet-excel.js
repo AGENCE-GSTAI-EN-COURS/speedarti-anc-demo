@@ -178,7 +178,8 @@ function shell(book,key){
    '<div class="px-result"><span>K retenu (moyenne)</span><strong>'+format(r.mean,2)+' <small>mm/h</small></strong><span>'+fmtTiny(r.meanMs)+' m/s</span>'+
      '<p>Calcul selon le tableur fourni par Fred. Résultat à vérifier avant utilisation professionnelle.</p></div></div>'+
    '<div class="px-bottom"><span class="px-warning" role="status">'+esc(message)+'</span><span data-px-save role="status">'+(demo?"Exemple du classeur — lecture seule":"✓ Enregistrement automatique")+'</span></div>'+
-   '</div></div>';
+   '</div></div>'+
+   (privateState()?'':'<div class="s4-footer"><span class="s4-save-label">✓ Enregistrement automatique</span><span class="s4-footer-buttons"><button type="button" class="btn secondary" data-demo-nav="sondages">← Précédent</button><button type="button" class="btn primary" data-demo-nav="geometrie">Suivant →</button></span></div>');
 }
 function chart(rows){
  const points=rows.filter(r=>r.volume!==null);
