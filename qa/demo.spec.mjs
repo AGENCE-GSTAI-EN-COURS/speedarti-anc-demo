@@ -1,55 +1,67 @@
 import { test, expect } from "@playwright/test";
 
-test("la démo publique fonctionne sans erreur JavaScript", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
+const slugs=["etudes","clients","dossier","terrain","sondages","porchet","geometrie","photos","cartes","automatisation","regles","controles","tests","rapport"];
+
+test("l'interface ANC V3 originale s'affiche sans erreur JavaScript", async ({page})=>{
+  const errors=[];
+  page.on("pageerror",e=>errors.push(e.message));
   await page.goto("/");
-  await expect(page.locator("#title-overview")).toBeVisible();
-  await expect(page.locator(".alert")).toContainText("aucun calcul ANC réel");
-  await expect(page.locator(".feature-card")).toHaveCount(6);
+  await expect(page.locator(".brand strong")).toHaveText("SpeedArti ANC");
+  await expect(page.locator(".public-warning")).toContainText("SPÉCIMEN");
+  await expect(page.locator("#public-tabs .tab")).toHaveCount(14);
+  await expect(page.locator("#etudes .section-head")).toBeVisible();
   expect(errors).toEqual([]);
 });
 
-test("la navigation fonctionne sur tous les écrans", async ({ page }) => {
+test("les quatorze onglets métier V3 sont présents et accessibles",async({page})=>{
   await page.goto("/");
-  for (const slug of ["dossier","soil","porchet","plan","infiltration","report","angel"]) {
-    await page.locator('.nav-link[data-target="' + slug + '"]').click();
-    await expect(page.locator("#page-" + slug)).toBeVisible();
+  for(const id of slugs){
+    await page.locator("#public-tabs [data-tab='"+id+"']").click();
+    await expect(page.locator("section#"+id)).toBeVisible();
+    await expect(page.locator("#public-tabs [data-tab='"+id+"']")).toHaveAttribute("aria-current","page");
   }
 });
 
-test("les scénarios préremplis changent sans calcul", async ({ page }) => {
-  await page.goto("/#/infiltration");
-  await page.locator("#scenario-select").selectOption("constrained");
-  await expect(page.locator("#stat-k")).toHaveText("9 mm/h");
-  await expect(page.locator("#stat-area")).toHaveText("À réévaluer");
-  await expect(page.locator("#scenario-warning")).toContainText("professionnel");
+test("les panneaux AXIS pédologie sont visibles dans l'interface V3",async({page})=>{
+  await page.goto("/#sondages");
+  await expect(page.locator("#axis-pedology-intro")).toBeVisible();
+  await expect(page.locator(".axis-touch-soils").first()).toBeVisible();
+  await expect(page.locator(".axis-touch-soils").first().getByRole("checkbox").first()).toBeVisible();
 });
 
-test("la fiche dossier met à jour le spécimen uniquement", async ({ page }) => {
-  await page.goto("/#/dossier");
-  await page.locator("#field-reference").fill("DEMO-EXEMPLE-123");
-  await page.locator("#field-project").fill("Projet fictif");
-  await page.locator("#demo-save").click();
-  await expect(page.locator("#save-feedback")).toContainText("cette visite");
-  await page.locator('.nav-link[data-target="report"]').click();
-  await expect(page.locator("#report-reference")).toHaveText("DEMO-EXEMPLE-123");
-  await expect(page.locator("#report-project")).toHaveText("Projet fictif");
-  await expect(page.locator(".report-watermark")).toHaveText("SPÉCIMEN");
+test("les plans AXIS et les annotations proviennent de la vraie interface V3",async({page})=>{
+  await page.goto("/#geometrie");
+  await expect(page.locator("#axis-metric-panel")).toBeVisible();
+  await expect(page.locator("#axis-plan-types")).toBeVisible();
+  await expect(page.locator("#axis-trench-panel")).toBeVisible();
+  await expect(page.locator(".axis-ann-quality").first()).toBeVisible();
 });
 
-test("Ángel répond uniquement avec des phrases simulées", async ({ page }) => {
-  await page.goto("/#/angel");
-  await page.locator("#chat-input").fill("Porchet");
-  await page.locator("#chat-form button[type=submit]").click();
-  await expect(page.locator(".bubble.user")).toHaveCount(1);
-  await expect(page.locator(".bubble.assistant")).toHaveCount(2);
-  await expect(page.locator(".bubble.assistant").last()).toContainText("Aucune formule");
+test("l'essai Porchet montre le statut professionnel et ses relevés",async({page})=>{
+  await page.goto("/#porchet");
+  await expect(page.locator("#axis-porchet-validation")).toBeVisible();
+  await expect(page.locator("#axis-porchet-validation")).toContainText("NON VALIDÉE");
 });
 
-test("le plan schématique permet d'afficher et masquer les tranchées", async ({ page }) => {
-  await page.goto("/#/plan");
-  await expect(page.locator("#plan-trenches")).toBeVisible();
-  await page.locator("#show-trenches").uncheck();
-  await expect(page.locator("#plan-trenches")).toBeHidden();
+test("les fonctions confidentielles ne sont pas exécutées dans le public",async({page})=>{
+  await page.goto("/");
+  await expect(page.locator("#etudes")).toBeVisible();
+  await page.locator('[data-public-action="calculate"]').click();
+  await expect(page.locator("#public-toast")).toBeVisible();
+  await expect(page.locator("#public-toast")).toContainText("version privée");
+});
+
+test("le rapport garde la présentation V3 et sa validation humaine",async({page})=>{
+  await page.goto("/#rapport");
+  await expect(page.locator("#axis-report-page")).toBeVisible();
+  await expect(page.locator("#axis-report-page")).toContainText("VALIDATION PROFESSIONNELLE OBLIGATOIRE");
+});
+
+test("les sections publiques sont dépourvues de scripts",async({page})=>{
+  await page.goto("/#sondages");
+  await expect(page.locator("#sondages")).toBeVisible();
+  expect(await page.locator("#public-sections script").count()).toBe(0);
+  const payload=await page.locator("#public-sections").innerHTML();
+  expect(payload).not.toContain("window.SpeedArtiANC");
+  expect(payload).not.toContain("github_pat_");
 });
