@@ -1,0 +1,11 @@
+/* Uniquement les avertissements et ajustements de la vitrine. Les styles V3 restent d'origine. */
+.public-warning{margin-bottom:18px;padding:13px 16px;border:1px solid #e7ca92;background:#fff7e9;color:#755018;border-radius:12px;font-size:11px;line-height:1.6}
+.public-warning strong{color:#6f4615}
+.public-toast{position:fixed;right:18px;bottom:18px;z-index:300;padding:15px 18px;border-radius:12px;color:#fff;background:#153e68;box-shadow:0 12px 30px rgba(17,49,91,.23);max-width:min(440px,calc(100% - 30px));font-size:12px;line-height:1.6}
+.public-toast[hidden]{display:none}
+.public-canvas{display:grid;place-items:center;background:#eaf2f8;color:#456480;border:1px solid #caddea;border-radius:9px;min-height:220px;text-align:center;padding:24px}
+#public-sections .section.active{display:grid}
+#public-sections .section:not(.active){display:none}
+@media(max-width:950px){.topbar{position:static;flex-wrap:wrap;height:auto;min-height:74px}.tabs{top:0}.top-actions{justify-content:flex-start}}
+@media(max-width:640px){.topbar{padding:12px}.brand strong{font-size:15px}.top-actions .btn{font-size:10px;min-height:32px;padding:0 9px}.top-actions .pwa-banner,.top-actions .save-state{display:none}.main{padding:15px 11px 45px}.section-head h1{font-size:20px}.public-warning{font-size:10px}}
+@media print{.topbar,.tabs,.public-warning,.public-toast{display:none!important}#public-sections section:not(#rapport){display:none!important}#public-sections #rapport{display:grid!important}}
