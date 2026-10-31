@@ -27,6 +27,7 @@ jobs:
           node --check assets/public.js
           node --check assets/demo-engine.js
           node --check assets/porchet-excel.js
+          node --check assets/live-workflow.js
       - name: Install public demo test tools
         run: npm install --no-audit --no-fund
       - name: Install Chromium
@@ -54,7 +55,7 @@ jobs:
         run: |
           mkdir -p site/assets site/sections
           cp index.html site/
-          cp assets/original.css assets/public.css assets/public.js assets/demo-engine.js assets/porchet-excel.js assets/porchet-excel.css site/assets/
+          cp assets/original.css assets/public.css assets/public.js assets/demo-engine.js assets/porchet-excel.js assets/porchet-excel.css assets/live-workflow.js site/assets/
           cp sections/*.html site/sections/
           touch site/.nojekyll
           test "$(find site/sections -maxdepth 1 -name '*.html' | wc -l)" -eq 14

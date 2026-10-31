@@ -43,6 +43,7 @@
   async function navigate(slug,scroll=true){
     if(!tabNames.has(slug))return;
     const thisToken=++token;
+    window.ANCRealWorkflow?.beforeNavigate?.();
     window.ANCDemoEngine?.saveCurrent?.();
     nav.querySelectorAll(".tab").forEach(button=>{
       const on=button.dataset.tab===slug;
@@ -58,7 +59,7 @@
       if(thisToken!==token)return;
       viewport.innerHTML=html;
       const section=viewport.querySelector("section");
-      if(section){section.classList.add("active");window.ANCDemoEngine?.mount?.(section,slug);window.ANCDemoEngine?.addHorizonButtons?.(document.querySelector("#public-sections section"));}
+      if(section){section.classList.add("active");window.ANCDemoEngine?.mount?.(section,slug);const mounted=viewport.querySelector("section");window.ANCDemoEngine?.addHorizonButtons?.(mounted);window.ANCRealWorkflow?.mount?.(mounted,slug);}
       if(scroll)window.scrollTo({top:0,behavior:"auto"});
     }catch(error){
       if(thisToken!==token)return;
@@ -87,6 +88,7 @@
       else toast("Cette action n'est pas disponible dans le parcours public.");
       return;
     }
+    if(window.ANCRealWorkflow?.handle?.(event)){event.preventDefault();return;}
     if(window.ANCDemoEngine?.handle?.(event)){event.preventDefault();return;}
     const external=event.target.closest("#public-sections a[href]");
     if(external){return;}
