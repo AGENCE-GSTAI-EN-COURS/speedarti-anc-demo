@@ -84,7 +84,8 @@
       const name=action.dataset.publicAction;
       event.preventDefault();
       if(name==="print"){navigate("rapport").then(()=>window.print());}
-      else if(window.ANCDemoEngine?.topAction?.(name)){/* action exécutée */}
+      else if(window.ANCRealWorkflow?.topAction?.(name)){/* action réelle du dossier */}
+      else if(window.ANCDemoEngine?.topAction?.(name)){/* repli */}
       else toast("Cette action n'est pas disponible dans le parcours public.");
       return;
     }
