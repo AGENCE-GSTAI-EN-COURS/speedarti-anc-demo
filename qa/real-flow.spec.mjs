@@ -3,6 +3,7 @@ import {test,expect} from "@playwright/test";
 test("Parcours réel: dossier → Porchet Excel → rapport avec les données saisies", async ({page})=>{
   const errors=[];page.on("pageerror",e=>errors.push(e.message));
   await page.goto("/#dossier");
+  console.log("ANC_DIAG_DOSSIER",JSON.stringify(await page.evaluate(()=>({message:window.__ancMountError||null,content:document.querySelector("#public-sections")?.textContent?.slice(0,150)}))));
   await expect(page.locator("#dossier")).toBeVisible();
   await page.locator('[data-path="title"]').fill("Étude réelle de démonstration");
   await page.locator('[data-path="reference"]').fill("TEST-FRED-001");
