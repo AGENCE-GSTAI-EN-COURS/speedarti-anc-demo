@@ -23,7 +23,7 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript syntax
-        run: node --check assets/app.js
+        run: node --check assets/public.js
       - name: Install public demo test tools
         run: npm install --no-audit --no-fund
       - name: Install Chromium
@@ -49,10 +49,14 @@ jobs:
           enablement: true
       - name: Collect only static demo files
         run: |
-          mkdir -p site/assets
+          mkdir -p site/assets site/sections
           cp index.html site/
-          cp assets/app.js assets/styles.css site/assets/
+          cp assets/original.css assets/public.css assets/public.js site/assets/
+          cp sections/*.html site/sections/
           touch site/.nojekyll
+          test "$(find site/sections -maxdepth 1 -name '*.html' | wc -l)" -eq 14
+          test -f site/assets/public.js
+          test -f site/assets/original.css
       - uses: actions/upload-pages-artifact@v3
         with:
           path: 'site'
