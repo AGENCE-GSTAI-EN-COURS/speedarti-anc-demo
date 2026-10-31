@@ -66,3 +66,68 @@ test("les sections publiques sont dépourvues de scripts",async({page})=>{
   expect(payload).not.toContain("window.SpeedArtiANC");
   expect(payload).not.toContain("github_pat_");
 });
+
+test("Sprint 4 — saisie conservée, sauvegarde automatique et bouton Suivant",async({page})=>{
+  await page.goto("/#dossier");
+  const title=page.locator('[data-path="title"]');
+  await expect(title).toBeVisible();
+  await title.fill("Étude de démonstration Fred");
+  await page.locator("#dossier .s4-footer [data-demo-nav='terrain']").click();
+  await expect(page.locator("#terrain")).toBeVisible();
+  await page.reload();
+  await page.locator("#public-tabs [data-tab='dossier']").click();
+  await expect(page.locator('[data-path="title"]')).toHaveValue("Étude de démonstration Fred");
+  await expect(page.locator("#dossier .s4-save-label")).toContainText("enregistr");
+});
+
+test("Sprint 4 — sondage et horizon duplicables avec sélecteur pente",async({page})=>{
+  await page.goto("/#sondages");
+  await expect(page.locator("#sondages .item-card").first()).toBeVisible();
+  const count=await page.locator("#sondages .item-card").count();
+  await page.locator("#sondages [data-action='duplicate-borehole']").first().click();
+  await expect(page.locator("#sondages .item-card")).toHaveCount(count+1);
+  const first=page.locator("#sondages .item-card").first();
+  const horizonCount=await first.locator(".horizon").count();
+  await first.locator("[data-demo-duplicate-horizon]").first().click();
+  await expect(first.locator(".horizon")).toHaveCount(horizonCount+1);
+  await first.locator(".s4-slope-comparator").first().selectOption("<");
+  await expect(first.locator(".s4-slope-comparator").first()).toHaveValue("<");
+  await page.locator("#public-tabs [data-tab='terrain']").click();
+  await page.locator("#public-tabs [data-tab='sondages']").click();
+  await expect(page.locator("#sondages .item-card")).toHaveCount(count+1);
+});
+
+test("Sprint 4 — détection fictive de la parcelle et recherche BRGM utilisables",async({page})=>{
+  await page.goto("/#dossier");
+  await page.locator("#anc-detect-parcel").click();
+  await expect(page.locator("#anc-parcel-total")).toContainText("5 033");
+  await page.locator("#public-tabs [data-tab='terrain']").click();
+  await page.locator("#anc-brgm-fetch").click();
+  await expect(page.locator("#anc-brgm-summary")).toContainText("démonstration");
+});
+
+test("Sprint 4 — photo matériel enregistrée une seule fois et réutilisable",async({page})=>{
+  await page.goto("/#photos");
+  await expect(page.locator(".s4-equipment")).toBeVisible();
+  await page.locator(".s4-equipment-name").fill("Perméamètre test");
+  await page.locator(".s4-equipment-file").setInputFiles({
+    name:"materiel.png",mimeType:"image/png",
+    buffer:Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+xqM0AAAAASUVORK5CYII=","base64")
+  });
+  await page.locator("[data-demo-equipment='add']").click();
+  await expect(page.locator(".s4-preset")).toContainText("Perméamètre test");
+  await page.reload();
+  await expect(page.locator(".s4-preset")).toContainText("Perméamètre test");
+  await page.locator("[data-demo-equipment-use]").click();
+  await expect(page.locator(".s4-equipment-list")).toContainText("associé");
+});
+
+test("Sprint 4 — plus de message de blocage générique sur les boutons métier",async({page})=>{
+  await page.goto("/#sondages");
+  await page.locator("#sondages [data-action='add-borehole']").click();
+  const msg=page.locator("#public-toast");
+  await expect(msg).toBeVisible();
+  await expect(msg).not.toContainText("Fonction métier volontairement réservée");
+  await page.locator('[data-public-action="calculate"]').click();
+  await expect(msg).toContainText("scénario fictif");
+});
