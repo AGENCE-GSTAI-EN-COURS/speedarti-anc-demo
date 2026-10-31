@@ -1,29 +1,24 @@
-# SpeedArti ANC V3 — démonstration publique fidèle
+# SpeedArti ANC V3 — démonstration publique interactive
 
-Cette vitrine reprend **l'apparence réelle du module privé SpeedArti ANC V3**, et non l'ancienne interface simplifiée créée par erreur.
+La présentation reprend les **14 vrais écrans ANC V3**, générés depuis le dépôt source privé puis publiés sous forme d'HTML/CSS **sans aucun code métier confidentiel**.
 
-## Contenu publié
+## Sprint 4 — déblocage du parcours Fred
 
-- Barre supérieure, navigation et **14 onglets historiques**.
-- Fiches dossier/terrain, sondages, horizons et choix multiples AXIS.
-- Vues Porchet, « Plan & métrés », cartes, automatisation, règles, contrôles et rapport.
-- Panneaux V3 **générés dans le dépôt privé** en navigateur avec un dossier totalement fictif, puis copiés sous forme de **HTML rendu assaini**.
-- Fichiers publics : `index.html`, `assets/public.js`, `assets/public.css`, `assets/original.css`, `sections/*.html`.
-- Tests navigateur sur ordinateur et smartphone, 14 onglets et vérifications des panneaux AXIS.
+- Les formulaires sont modifiables ; la démo garde les changements **localement dans le navigateur**, même après un rechargement.
+- Bouton « Suivant → » en bas des écrans et statut d'enregistrement ; aucun bouton Enregistrer.
+- Ajout, suppression et duplication de sondages et horizons fictifs.
+- Champ pente doté d'un comparateur `<`, `=` ou `>`.
+- Détection cadastrale et BRGM simulées avec le dossier d'exemple. **Aucune recherche réelle de parcelle ni donnée scientifique authentifiée n'est effectuée dans la vitrine.**
+- Ajout de photos et bibliothèque du matériel à réutiliser dans ce navigateur.
+- Prévisualisation des processus Porchet, plans, contrôles et rapports en mode **SPÉCIMEN**.
+- Export/import JSON du dossier fictif. Ces sauvegardes ne sont ni transmises à SpeedArti ni synchronisées entre appareils.
 
-## Sécurité et limites
+La démonstration n'est pas un outil d'étude ANC validée. Tous les calculs techniques sont absents du dépôt public. Les actions dites « simuler » modifient l'aperçu ou affichent le scénario d'exemple ; elles ne produisent pas de dimensionnement réglementaire et ne vérifient pas un dossier réel. La visualisation d'éditeur cartographique n'est pas équivalente à un éditeur de géométries fonctionnel.
 
-Le dépôt public **ne contient aucun calculateur ANC**, ni moteur Porchet, algorithmes cartographiques, API, données clients réelles ou accès Supabase. Il présente les résultats de **scénarios fictifs figés**, non validés professionnellement.
+## Dépôts et règles
 
-Le navigateur public permet de visiter les écrans V3 et de consulter les informations. Les boutons qui nécessitent le moteur privé signalent explicitement la limitation ; ils ne réalisent pas de calculs réglementaires.
-
-Les **sources confidentielles et la logique métier** restent sur le dépôt privé :
-`AGENCE-GSTAI-EN-COURS/speedarti-anc-src`.
-
-Toute formule et tout choix d'implantation nécessitent l'approbation du professionnel et les validations métier encore attendues de Fred.
+- **Privé** : `AGENCE-GSTAI-EN-COURS/speedarti-anc-src` — moteur ANC, formules, connecteurs, tests et extensions Fred.
+- **Public** : `AGENCE-GSTAI-EN-COURS/speedarti-anc-demo` — uniquement les vues et le code de parcours fictif.
+- `GSTAI-Sp/speedarti-v2` — lecture seule absolue.
 
 **ÁNGEL PROPOSE — LE PROFESSIONNEL VALIDE.**
-
-## Publication
-
-GitHub Actions publie uniquement la coque, les styles V3 et les 14 vues HTML. Le workflow contrôle le nombre de vues et refuse les dossiers sources métier.
