@@ -89,6 +89,18 @@
     const external=event.target.closest("#public-sections a[href]");
     if(external){event.preventDefault();blocked();return;}
     const button=event.target.closest("#public-sections button");
+    if(button&&button.classList.contains("axis-ann-add")){
+      event.preventDefault();
+      const list=document.getElementById("axis-annotation-list");
+      if(list){
+        const row=document.createElement("div");
+        row.className="axis-card public-example-annotation";
+        row.innerHTML='<div class="axis-grid"><div class="field"><label>Type</label><select class="select"><option>Cotation</option><option>Fil d’eau</option><option>Cote terrain</option></select></div><div class="field"><label>Libellé</label><input class="input" value="Exemple de cote"></div><div class="field"><label>Valeur fictive</label><input class="input" value=""></div><div class="field"><label>Origine de la cote</label><select class="select axis-ann-quality"><option value="TO_CONFIRM">À vérifier</option><option value="MEASURED">Mesurée sur site</option><option value="ESTIMATED">Estimée — provisoire</option></select></div></div><div class="notice warn" style="margin-top:8px">SPÉCIMEN — aucune mesure réelle ni validation professionnelle.</div>';
+        list.appendChild(row);
+        toast("Cote fictive ajoutée dans cette vue uniquement. Aucun métrage ou calcul n’a été exécuté.");
+      }
+      return;
+    }
     if(button){
       event.preventDefault();
       // Une vue de dossier peut demander d'ouvrir un onglet existant.

@@ -34,6 +34,7 @@ test("les plans AXIS et les annotations proviennent de la vraie interface V3",as
   await expect(page.locator("#axis-metric-panel")).toBeVisible();
   await expect(page.locator("#axis-plan-types")).toBeVisible();
   await expect(page.locator("#axis-trench-panel")).toBeVisible();
+  await page.locator(".axis-ann-add").click();
   await expect(page.locator(".axis-ann-quality").first()).toBeVisible();
 });
 
