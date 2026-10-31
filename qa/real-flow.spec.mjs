@@ -88,14 +88,15 @@ test("Plan ANC: tracer une tranchée, mesurer et retrouver la longueur dans le r
   await expect(page.locator("#live-plan")).toBeVisible();
   const svg=page.locator(".live-plan-svg");
   await page.locator('[data-live-plan="trench"]').click();
-  await svg.click({position:{x:100,y:150}});
-  await svg.click({position:{x:340,y:150}});
+  const box=await svg.boundingBox();
+  await svg.click({position:{x:box.width*0.2,y:box.height*0.5}});
+  await svg.click({position:{x:box.width*0.6,y:box.height*0.5}});
   await expect(page.locator(".live-plan-svg polyline")).toHaveCount(1);
-  await expect(page.locator(".live-plan-summary")).toContainText("24 m");
+  await expect(page.locator(".live-plan-summary")).toContainText("32 m");
   await page.locator('#public-tabs [data-tab="rapport"]').click();
-  await expect(page.locator("#axis-report-page")).toContainText("24.00 m");
+  await expect(page.locator("#axis-report-page")).toContainText("32.00 m");
   await page.reload();
-  await expect(page.locator("#axis-report-page")).toContainText("24.00 m");
+  await expect(page.locator("#axis-report-page")).toContainText("32.00 m");
 });
 test("Plan ANC: maison et annulation du dernier point",async({page})=>{
   await page.goto("/#geometrie");
@@ -104,8 +105,9 @@ test("Plan ANC: maison et annulation du dernier point",async({page})=>{
   await svg.click({position:{x:200,y:180}});
   await expect(svg.getByText("Maison")).toBeVisible();
   await page.locator('[data-live-plan="trench"]').click();
-  await svg.click({position:{x:100,y:150}});
-  await svg.click({position:{x:340,y:150}});
+  const box=await svg.boundingBox();
+  await svg.click({position:{x:box.width*0.2,y:box.height*0.5}});
+  await svg.click({position:{x:box.width*0.6,y:box.height*0.5}});
   await expect(svg.locator("circle")).toHaveCount(2);
   await page.locator('[data-live-plan="undo"]').click();
   await expect(svg.locator("circle")).toHaveCount(1);
