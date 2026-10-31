@@ -59,7 +59,19 @@
       if(thisToken!==token)return;
       viewport.innerHTML=html;
       const section=viewport.querySelector("section");
-      if(section){section.classList.add("active");window.ANCDemoEngine?.mount?.(section,slug);const mounted=viewport.querySelector("section");window.ANCDemoEngine?.addHorizonButtons?.(mounted);window.ANCRealWorkflow?.mount?.(mounted,slug);}
+      if(section){
+        section.classList.add("active");
+        try {window.ANCDemoEngine?.mount?.(section,slug);}
+        catch(err){console.error("ANC demo legacy mount",slug,err);}
+        const mounted=viewport.querySelector("section");
+        try {window.ANCDemoEngine?.addHorizonButtons?.(mounted);}
+        catch(err){console.error("ANC demo horizons",slug,err);}
+        try {window.ANCRealWorkflow?.mount?.(mounted,slug);}
+        catch(err){
+          console.error("ANC demo real workflow mount",slug,err);
+          window.__ancMountError={page:slug,message:String(err?.message||err)};
+        }
+      }
       if(scroll)window.scrollTo({top:0,behavior:"auto"});
     }catch(error){
       if(thisToken!==token)return;
