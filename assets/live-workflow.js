@@ -145,7 +145,7 @@
     }
   }
   function studiesPanel(section){
-    if($("#live-studies",section))return;
+    $("#live-studies",section)?.remove();
     const db=read(),selected=current(db);
     const article=document.createElement("article");article.className="card";article.id="live-studies";
     article.innerHTML='<header class="card-head"><div><h2>Mes études de démonstration</h2><p>Chaque dossier conserve séparément ses formulaires et ses essais Porchet dans ce navigateur.</p></div><button type="button" class="btn primary" data-live-action="new-study">+ Nouvelle étude</button></header>'+
@@ -159,7 +159,7 @@
     for(const old of $$(".card",section)){if(old!==article)old.classList.add("live-original-list")}
   }
   function clientsPanel(section){
-    if($("#live-clients",section))return;
+    $("#live-clients",section)?.remove();
     const db=read(),article=document.createElement("article");
     article.className="card";article.id="live-clients";
     article.innerHTML='<header class="card-head"><div><h2>Clients de démonstration</h2><p>Créez un client, puis réutilisez-le dans le dossier actif.</p></div></header><div class="card-body">'+

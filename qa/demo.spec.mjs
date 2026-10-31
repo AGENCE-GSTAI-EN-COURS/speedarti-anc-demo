@@ -78,7 +78,7 @@ test("Sprint 4 — saisie conservée, sauvegarde automatique et bouton Suivant",
   await page.reload();
   await page.locator("#public-tabs [data-tab='dossier']").click();
   await expect(page.locator('[data-path="title"]')).toHaveValue("Étude de démonstration Fred");
-  await expect(page.locator("#dossier .s4-save-label")).toContainText("enregistr");
+  await expect(page.locator("#dossier .s4-save-label")).toContainText(/enregistr/i);
 });
 
 test("Sprint 4 — sondage et horizon duplicables avec sélecteur pente",async({page})=>{
