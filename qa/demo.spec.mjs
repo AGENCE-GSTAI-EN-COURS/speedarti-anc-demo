@@ -49,7 +49,7 @@ test("les fonctions confidentielles ne sont pas exécutées dans le public",asyn
   await expect(page.locator("#etudes")).toBeVisible();
   await page.locator('[data-public-action="calculate"]').click();
   await expect(page.locator("#public-toast")).toBeVisible();
-  await expect(page.locator("#public-toast")).toContainText("version privée");
+  await expect(page.locator("#public-toast")).toContainText("scénario fictif");
 });
 
 test("le rapport garde la présentation V3 et sa validation humaine",async({page})=>{

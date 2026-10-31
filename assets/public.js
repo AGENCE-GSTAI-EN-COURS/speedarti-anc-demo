@@ -47,6 +47,7 @@
   async function navigate(slug,scroll=true){
     if(!tabNames.has(slug))return;
     const thisToken=++token;
+    window.ANCDemoEngine?.saveCurrent?.();
     nav.querySelectorAll(".tab").forEach(button=>{
       const on=button.dataset.tab===slug;
       button.classList.toggle("active",on);
@@ -61,7 +62,7 @@
       if(thisToken!==token)return;
       viewport.innerHTML=html;
       const section=viewport.querySelector("section");
-      if(section)section.classList.add("active");
+      if(section){section.classList.add("active");window.ANCDemoEngine?.mount?.(section,slug);window.ANCDemoEngine?.addHorizonButtons?.(document.querySelector("#public-sections section"));}
       if(scroll)window.scrollTo({top:0,behavior:"auto"});
     }catch(error){
       if(thisToken!==token)return;
@@ -70,6 +71,7 @@
     }
   }
 
+  window.ANCPublicNavigate=navigate;
   nav.addEventListener("click",event=>{
     const button=event.target.closest("button[data-tab]");
     if(button)navigate(button.dataset.tab);
@@ -81,11 +83,13 @@
     const action=event.target.closest("[data-public-action]");
     if(action){
       const name=action.dataset.publicAction;
-      if(name==="reset"){cache.clear();navigate(location.hash.slice(1)||"etudes");toast("La démonstration fictive a été rechargée.");}
-      else if(name==="print"){navigate("rapport").then(()=>window.print());}
-      else blocked();
+      event.preventDefault();
+      if(name==="print"){navigate("rapport").then(()=>window.print());}
+      else if(window.ANCDemoEngine?.topAction?.(name)){/* action exécutée */}
+      else toast("Cette action n'est pas disponible dans le parcours public.");
       return;
     }
+    if(window.ANCDemoEngine?.handle?.(event)){event.preventDefault();return;}
     const external=event.target.closest("#public-sections a[href]");
     if(external){event.preventDefault();blocked();return;}
     const button=event.target.closest("#public-sections button");
@@ -106,7 +110,7 @@
       // Une vue de dossier peut demander d'ouvrir un onglet existant.
       const target=button.getAttribute("data-tab");
       if(target&&tabNames.has(target)){navigate(target);return;}
-      blocked();
+      toast("Cette action ne dispose pas encore d’une simulation publique.");
     }
   },true);
 

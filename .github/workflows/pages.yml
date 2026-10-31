@@ -23,7 +23,9 @@ jobs:
         with:
           node-version: '22'
       - name: Check JavaScript syntax
-        run: node --check assets/public.js
+        run: |
+          node --check assets/public.js
+          node --check assets/demo-engine.js
       - name: Install public demo test tools
         run: npm install --no-audit --no-fund
       - name: Install Chromium
@@ -51,7 +53,7 @@ jobs:
         run: |
           mkdir -p site/assets site/sections
           cp index.html site/
-          cp assets/original.css assets/public.css assets/public.js site/assets/
+          cp assets/original.css assets/public.css assets/public.js assets/demo-engine.js site/assets/
           cp sections/*.html site/sections/
           touch site/.nojekyll
           test "$(find site/sections -maxdepth 1 -name '*.html' | wc -l)" -eq 14
