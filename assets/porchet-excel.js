@@ -83,6 +83,13 @@ function linkPrivate(st,book){
  const s=book.sheets[tab],computed=calculate(s);
  const hasInputs=s&&[s.diameter,s.height,s.graduations?.[0],...s.graduations?.slice(1)||[]].some(v=>String(v||"").trim()!=="");
  if(!hasInputs)return;
+ // La nouvelle page Excel remplace les anciens essais actifs sans effacer l’historique.
+ // Sauvegarde réversible des anciens tests dans le dossier, effectuée une seule fois.
+ if(!book.legacyMigrated){
+   book.legacyPorchets=cloned(st.porchets);
+   st.porchets=[];
+   book.legacyMigrated=true;
+ }
  let p=st.porchets.find(x=>x.excelKey===tab);
  if(!p)p=st.porchets.find(x=>x.label===tab.replace("P","")&&!x.excelKey);
  if(!p){
