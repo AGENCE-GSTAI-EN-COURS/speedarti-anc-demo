@@ -22,3 +22,7 @@ La démonstration n'est pas un outil d'étude ANC validée. Tous les calculs tec
 - `GSTAI-Sp/speedarti-v2` — lecture seule absolue.
 
 **ÁNGEL PROPOSE — LE PROFESSIONNEL VALIDE.**
+
+## Synchronisation des dossiers — correctif de parcours
+
+La nouvelle couche `assets/live-workflow.js` relie en local la création de clients, la sélection d’études, les champs du dossier, les sondages, les feuilles Porchet KP1–KP4 et le rapport. Le bouton d’en-tête dirige désormais vers **Voir mon rapport**, car il n’existe pas de calcul réglementaire global dans le dépôt public. Les données restent sur cet appareil, ne sont pas synchronisées avec SpeedArti.
