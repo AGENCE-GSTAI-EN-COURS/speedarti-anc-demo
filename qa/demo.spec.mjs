@@ -131,5 +131,6 @@ test("Sprint 4 — plus de message de blocage générique sur les boutons métie
   await expect(msg).toBeVisible();
   await expect(msg).not.toContainText("Fonction métier volontairement réservée");
   await page.locator('[data-public-action="calculate"]').click();
-  await expect(msg).toContainText("scénario fictif");
+  await expect(msg).toContainText("Rapport actualisé");
+  await expect(page.locator("#axis-report-page")).toBeVisible();
 });

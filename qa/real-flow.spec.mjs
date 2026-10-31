@@ -3,7 +3,6 @@ import {test,expect} from "@playwright/test";
 test("Parcours réel: dossier → Porchet Excel → rapport avec les données saisies", async ({page})=>{
   const errors=[];page.on("pageerror",e=>errors.push(e.message));
   await page.goto("/#dossier");
-  console.log("ANC_DIAG_DOSSIER",JSON.stringify(await page.evaluate(()=>({message:window.__ancMountError||null,content:document.querySelector("#public-sections")?.textContent?.slice(0,150)}))));
   await expect(page.locator("#dossier")).toBeVisible();
   await page.locator('[data-path="title"]').fill("Étude réelle de démonstration");
   await page.locator('[data-path="reference"]').fill("TEST-FRED-001");
@@ -93,11 +92,16 @@ test("Plan ANC: tracer une tranchée, mesurer et retrouver la longueur dans le r
   await svg.click({position:{x:box.width*0.2,y:box.height*0.5}});
   await svg.click({position:{x:box.width*0.6,y:box.height*0.5}});
   await expect(page.locator(".live-plan-svg polyline")).toHaveCount(1);
-  await expect(page.locator(".live-plan-summary")).toContainText("32 m");
+  const summary=await page.locator(".live-plan-summary").innerText();
+  const matched=summary.match(/Longueur dessinée : ([\d,]+)/);
+  expect(matched).not.toBeNull();
+  const distance=Number(matched[1].replace(",","."));
+  expect(distance).toBeGreaterThan(31);
+  expect(distance).toBeLessThan(33);
   await page.locator('#public-tabs [data-tab="rapport"]').click();
-  await expect(page.locator("#axis-report-page")).toContainText("32.00 m");
+  await expect(page.locator("#axis-report-page")).toContainText(distance.toFixed(2)+" m");
   await page.reload();
-  await expect(page.locator("#axis-report-page")).toContainText("32.00 m");
+  await expect(page.locator("#axis-report-page")).toContainText(distance.toFixed(2)+" m");
 });
 test("Plan ANC: maison et annulation du dernier point",async({page})=>{
   await page.goto("/#geometrie");

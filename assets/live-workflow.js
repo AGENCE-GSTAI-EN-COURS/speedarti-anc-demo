@@ -11,7 +11,7 @@
   const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const id=()=>("ANC-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7));
   const fresh=(title="Nouvelle étude de démonstration")=>({id:id(),name:title,createdAt:new Date().toISOString(),fields:{},cells:{},toggles:{},porchet:null,archived:false,isNew:true});
-  function initial(){const example=fresh("Étude ANC — exemple");return {version:1,activeId:example.id,studies:[example],clients:[],updatedAt:new Date().toISOString()};}
+  function initial(){const example=fresh("Étude ANC — exemple");example.isNew=false;return {version:1,activeId:example.id,studies:[example],clients:[],updatedAt:new Date().toISOString()};}
   function read(){try{const data=JSON.parse(localStorage.getItem(KEY)||"null");return data?.version===1&&Array.isArray(data.studies)?data:initial();}catch{return initial()}}
   function save(db){db.updatedAt=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(db));return true}catch{notice("Enregistrement impossible : espace de stockage insuffisant.");return false}}
   function current(db){return db.studies.find(x=>x.id===db.activeId)||db.studies[0]}
