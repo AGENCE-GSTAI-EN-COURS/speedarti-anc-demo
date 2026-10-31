@@ -15,3 +15,10 @@
 
 /* Parcours vraiment relié entre écrans : dossiers et clients */
 .live-study-list,.live-client-list{display:grid;gap:10px}.live-study-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border:1px solid #deebf4;border-radius:10px;background:#f9fcff}.live-study-row>div:first-child{display:grid;gap:5px}.live-study-row strong{color:#214768}.live-study-row small{color:#758da3}.live-client-create{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:18px}.live-client-create label{display:grid;gap:5px;font-size:11px;font-weight:800;flex:1;min-width:150px}.live-original-list{display:none!important}#rapport #report-pages> :not(#axis-report-page){display:none!important}#rapport #axis-report-page{display:block!important;background:white!important;min-height:700px}#rapport #axis-report-page table{width:100%;margin:14px 0}#rapport #axis-report-page td,#rapport #axis-report-page th{padding:10px;border-bottom:1px solid #e3edf4}#rapport #axis-report-page h2{font-size:17px;margin-top:24px;color:#214e7e}@media(max-width:680px){.live-study-row{align-items:flex-start;flex-direction:column}.live-study-row>div:last-child{display:flex;gap:5px;flex-wrap:wrap}}
+
+/* Éditeur métrique local réellement utilisable — non géoréférencé */
+#live-plan{margin:14px 0 20px}
+.live-plan-buttons{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin-bottom:16px}
+.live-plan-svg{display:block;width:100%;height:auto;max-height:540px;border:1px solid #ccdfed;border-radius:10px;background:#eff7fb;cursor:crosshair;touch-action:manipulation}
+.live-plan-svg:focus-visible{outline:3px solid #4da8ea}
+.live-plan-summary{background:#eff7fd;color:#2e607e;border:1px solid #daebf6;border-radius:9px;padding:12px 14px;font-size:12px;font-weight:750;margin-top:11px}

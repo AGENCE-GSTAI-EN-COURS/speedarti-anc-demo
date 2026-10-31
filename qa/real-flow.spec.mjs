@@ -81,3 +81,32 @@ test("Sondages: les modifications se retrouvent dans le rapport",async({page})=>
   await expect(page.locator("#axis-report-page")).toContainText("Sondage Fred");
   await expect(page.locator("#axis-report-page")).toContainText("150 cm");
 });
+
+
+test("Plan ANC: tracer une tranchée, mesurer et retrouver la longueur dans le rapport",async({page})=>{
+  await page.goto("/#geometrie");
+  await expect(page.locator("#live-plan")).toBeVisible();
+  const svg=page.locator(".live-plan-svg");
+  await page.locator('[data-live-plan="trench"]').click();
+  await svg.click({position:{x:100,y:150}});
+  await svg.click({position:{x:340,y:150}});
+  await expect(page.locator(".live-plan-svg polyline")).toHaveCount(1);
+  await expect(page.locator(".live-plan-summary")).toContainText("24 m");
+  await page.locator('#public-tabs [data-tab="rapport"]').click();
+  await expect(page.locator("#axis-report-page")).toContainText("24.00 m");
+  await page.reload();
+  await expect(page.locator("#axis-report-page")).toContainText("24.00 m");
+});
+test("Plan ANC: maison et annulation du dernier point",async({page})=>{
+  await page.goto("/#geometrie");
+  const svg=page.locator(".live-plan-svg");
+  await page.locator('[data-live-plan="house"]').click();
+  await svg.click({position:{x:200,y:180}});
+  await expect(svg.getByText("Maison")).toBeVisible();
+  await page.locator('[data-live-plan="trench"]').click();
+  await svg.click({position:{x:100,y:150}});
+  await svg.click({position:{x:340,y:150}});
+  await expect(svg.locator("circle")).toHaveCount(2);
+  await page.locator('[data-live-plan="undo"]').click();
+  await expect(svg.locator("circle")).toHaveCount(1);
+});
