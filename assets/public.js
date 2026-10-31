@@ -26,7 +26,7 @@
   }
   async function loadSection(slug){
     if(cache.has(slug))return cache.get(slug);
-    const response=await fetch("./sections/"+slug+".html",{cache:"no-cache"});
+    const response=await fetch("./sections/"+slug+".html?v=20261031-1645",{cache:"no-store"});
     if(!response.ok)throw Error("Vue "+slug+" indisponible ("+response.status+")");
     const html=await response.text();
     // Les fichiers publics sont générés uniquement depuis un jeu de données factices.
