@@ -24,10 +24,6 @@
     toastEl.textContent=message;toastEl.hidden=false;
     toastTimeout=setTimeout(()=>{toastEl.hidden=true;},6500);
   }
-  function blocked(){
-    toast("Fonction métier volontairement réservée à la version privée ANC V3. Cet écran public présente des données fictives et ne réalise aucun calcul ou sauvegarde.");
-  }
-
   async function loadSection(slug){
     if(cache.has(slug))return cache.get(slug);
     const response=await fetch("./sections/"+slug+".html",{cache:"no-cache"});
@@ -91,7 +87,7 @@
     }
     if(window.ANCDemoEngine?.handle?.(event)){event.preventDefault();return;}
     const external=event.target.closest("#public-sections a[href]");
-    if(external){event.preventDefault();blocked();return;}
+    if(external){return;}
     const button=event.target.closest("#public-sections button");
     if(button&&button.classList.contains("axis-ann-add")){
       event.preventDefault();
