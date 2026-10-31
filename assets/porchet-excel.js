@@ -12,7 +12,7 @@ const PUBLIC_KEY="speedarti-anc-public-porchet-excel-v1";
 const EXAMPLE=Object.freeze({
   ref:"KP??",diameter:"150",depth:"600",height:"150",calibration:"1.568",
   graduations:["1180","1173","1166","1160","1153","1146","1111","1076","1041","1006","970"],
-  slope:"10.92",soil:"",date:"",name:"",technician:"",commune:"",analyst:""
+  slope:"10.92",soil:"",dossier:"???",client:"???",date:"???",technician:"???",commune:"???",analyst:"???"
 });
 const $=(s,root=document)=>root.querySelector(s);
 const $$=(s,root=document)=>Array.from(root.querySelectorAll(s));
@@ -160,7 +160,7 @@ function shell(book,key){
    field("depth","P (mm)",s.depth,{numeric:true,readonly:demo})+
    field("height","H (mm)",s.height,{numeric:true,readonly:demo})+
    '<div class="px-output"><span>S (mm²)</span><strong data-px-area>'+format(r.area,2)+'</strong></div>'+
-   field("ref","Référence",s.ref||key,{readonly:demo})+
+   field("ref","Référence",s.ref||(key==="Exemple"?"KP??":key.replace("KP","K")),{readonly:demo})+
    '</div></div>'+
    '<div class="px-group"><h2>Relevés de graduation</h2>'+
    '<div class="px-table-scroll"><table class="px-table"><thead><tr><th>T (min)</th><th>Graduation</th><th>V (ml)</th><th>K (mm/h)</th><th>K (m/s)</th></tr></thead><tbody>'+inputs+
