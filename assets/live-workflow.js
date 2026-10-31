@@ -168,6 +168,110 @@
     $(".section-head",section)?.insertAdjacentElement("afterend",article);
     for(const old of $$(".card",section)){if(old!==article)old.classList.add("live-original-list")}
   }
+
+  // Outils de plan de démonstration réellement interactifs.
+  // Le fond est un repère métrique local, PAS un plan géoréférencé.
+  function plan(section){
+    const db=read(),st=current(db);if(!st)return;
+    const width=Number(st.fields["geometry.width"]||$('input[data-path="geometry.width"]',section)?.value)||80;
+    const height=Number(st.fields["geometry.height"]||$('input[data-path="geometry.height"]',section)?.value)||60;
+    if(!st.plan)st.plan={mode:"trench",points:[],width,height};
+    st.plan.width=Math.max(1,Math.min(500,width));
+    st.plan.height=Math.max(1,Math.min(500,height));
+    save(db);
+    $("#live-plan",section)?.remove();
+    const card=document.createElement("article");
+    card.className="card";card.id="live-plan";
+    card.innerHTML='<header class="card-head"><div><h2>Plan de démonstration interactif</h2><p>Choisir « Tracer une tranchée » puis cliquer sur le plan pour placer des points. Les distances en mètres sont mesurées dans un repère local fictif — aucune donnée cadastrale réelle.</p></div></header>'+
+      '<div class="card-body"><div class="live-plan-buttons">'+
+      '<button type="button" class="btn primary" data-live-plan="trench">Tracer une tranchée</button>'+
+      '<button type="button" class="btn secondary" data-live-plan="house">Placer la maison</button>'+
+      '<button type="button" class="btn secondary" data-live-plan="undo">Annuler le dernier point</button>'+
+      '<button type="button" class="btn secondary" data-live-plan="clear">Effacer le plan</button>'+
+      '<button type="button" class="btn secondary" data-live-plan="geojson">Exporter GeoJSON local</button></div>'+
+      '<svg class="live-plan-svg" viewBox="0 0 800 500" tabindex="0" role="img" aria-label="Plan interactif fictif, cliquez pour placer les points de tranchée"></svg>'+
+      '<div class="live-plan-summary" aria-live="polite"></div>'+
+      '<p class="small-text">Schéma d’essai uniquement : échelle locale définie par les dimensions saisies, à contrôler par un géomètre ou le bureau d’études.</p></div>';
+    const head=$(".section-head",section);
+    if(head)head.insertAdjacentElement("afterend",card);
+    else section.prepend(card);
+    const svg=$(".live-plan-svg",card);
+    svg.addEventListener("click",e=>{
+      const bb=svg.getBoundingClientRect();
+      const x=Math.max(0,Math.min(st.plan.width,(e.clientX-bb.left)/bb.width*st.plan.width));
+      const y=Math.max(0,Math.min(st.plan.height,(e.clientY-bb.top)/bb.height*st.plan.height));
+      const latest=read(),study=current(latest);if(!study)return;
+      if(study.plan.mode==="house")study.plan.house={x,y};
+      else study.plan.points.push({x,y});
+      save(latest);renderPlan(card,study.plan);
+    });
+    renderPlan(card,st.plan);
+  }
+  function geometryLength(plan){
+    const arr=plan?.points||[];let length=0;
+    for(let i=1;i<arr.length;i++)length+=Math.hypot(arr[i].x-arr[i-1].x,arr[i].y-arr[i-1].y);
+    return length;
+  }
+  function renderPlan(card,planData){
+    const svg=$(".live-plan-svg",card),summary=$(".live-plan-summary",card);
+    if(!svg)return;
+    const W=planData.width||80,H=planData.height||60;
+    const ns="http://www.w3.org/2000/svg";
+    svg.replaceChildren();
+    function node(tag,attrs,parent=svg){
+      const n=document.createElementNS(ns,tag);
+      for(const [k,v] of Object.entries(attrs))n.setAttribute(k,String(v));
+      parent.appendChild(n);return n;
+    }
+    node("rect",{x:0,y:0,width:800,height:500,fill:"#eff7fb"});
+    for(let i=0;i<=10;i++){
+      const x=i*80,y=i*50;
+      node("line",{x1:x,y1:0,x2:x,y2:500,stroke:"#c9ddeb"});
+      node("line",{x1:0,y1:y,x2:800,y2:y,stroke:"#c9ddeb"});
+    }
+    node("rect",{x:12,y:12,width:776,height:476,rx:5,fill:"none",stroke:"#2c8a69","stroke-width":3,"stroke-dasharray":"8 5"});
+    const points=planData.points||[];
+    if(points.length>1){
+      node("polyline",{points:points.map(p=>(p.x/W*800)+","+(p.y/H*500)).join(" "),fill:"none",stroke:"#1475d2","stroke-width":6,"stroke-linejoin":"round"});
+    }
+    for(const [index,p] of points.entries()){
+      const x=p.x/W*800,y=p.y/H*500;
+      node("circle",{cx:x,cy:y,r:6,fill:"#0d65c0",stroke:"white","stroke-width":2});
+      const txt=node("text",{x:x+10,y:y-10,fill:"#143c68","font-size":14,"font-weight":800});
+      txt.textContent="T"+(index+1);
+    }
+    if(planData.house){
+      const h=planData.house,x=h.x/W*800,y=h.y/H*500;
+      node("rect",{x:x-16,y:y-16,width:32,height:32,rx:2,fill:"#ef9945",stroke:"#945b1f","stroke-width":2});
+      const t=node("text",{x:x+20,y:y+5,fill:"#865424","font-size":14});t.textContent="Maison";
+    }
+    const length=geometryLength(planData);
+    if(summary)summary.textContent=
+      "Dimensions fictives : "+W+" × "+H+" m · "+
+      points.length+" point(s) de tranchée · Longueur dessinée : "+length.toLocaleString("fr-FR",{maximumFractionDigits:2})+" m"+
+      " · Outil actif : "+(planData.mode==="house"?"Maison":"Tranchée");
+  }
+  function planAction(el){
+    if(!el.dataset.livePlan)return false;
+    const db=read(),st=current(db);if(!st||!st.plan)return true;
+    const mode=el.dataset.livePlan;
+    if(mode==="trench"||mode==="house")st.plan.mode=mode;
+    else if(mode==="undo")st.plan.points.pop();
+    else if(mode==="clear"){st.plan.points=[];delete st.plan.house;}
+    else if(mode==="geojson"){
+      const features=[];
+      if(st.plan.points.length>1)features.push({type:"Feature",properties:{kind:"trench",crs:"LOCAL_METRIC_DEMO"},geometry:{type:"LineString",coordinates:st.plan.points.map(p=>[p.x,p.y])}});
+      if(st.plan.house)features.push({type:"Feature",properties:{kind:"house",crs:"LOCAL_METRIC_DEMO"},geometry:{type:"Point",coordinates:[st.plan.house.x,st.plan.house.y]}});
+      const json=JSON.stringify({type:"FeatureCollection",features},null,2);
+      const uri=URL.createObjectURL(new Blob([json],{type:"application/geo+json"}));
+      const a=document.createElement("a");a.href=uri;a.download="anc-plan-local-demo.geojson";a.click();
+      setTimeout(()=>URL.revokeObjectURL(uri),500);
+      notice("Plan fictif exporté. Coordonnées locales non géoréférencées.");
+      return true;
+    }
+    save(db);const card=$("#live-plan");if(card)renderPlan(card,st.plan);
+    return true;
+  }
   function report(section){
     const db=read(),st=current(db);if(!st)return;
     const source=st.fields||{};
@@ -199,6 +303,9 @@
       (boreholes.length?boreholes.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.depth)+' cm</td><td>'+esc(x.slope)+' %</td><td>'+esc(x.classification)+'</td></tr>').join(""):'<tr><td colspan="4">Aucun sondage saisi</td></tr>')+
       '</table><h2>Essais Porchet — Excel Fred</h2><table style="width:100%;border-collapse:collapse"><tr><th>Essai</th><th>K moyen (mm/h)</th><th>K graphique (mm/h)</th></tr>'+
       (krows.length?krows.map(x=>'<tr><td>'+esc(x.key)+'</td><td>'+(x.mean===null?"Non calculé":x.mean.toFixed(3))+'</td><td>'+(x.graphical===null?"Non calculé":x.graphical.toFixed(3))+'</td></tr>').join(""):'<tr><td colspan="3">Aucun essai Porchet saisi</td></tr>')+'</table>'+
+      '<h2>Plan de démonstration</h2><p>'+(st.plan
+        ? 'Longueur des tracés dans le repère métrique local : '+geometryLength(st.plan).toFixed(2)+' m (non géoréférencé, à confirmer).'
+        : 'Aucun tracé réalisé.')+'</p>'+
       '<p><strong>Contrôles requis :</strong> vérifier les mesures, la stabilité, le choix de la valeur K et les règles applicables avant toute conclusion technique.</p>'+
       '<p style="margin-top:30px;border-top:1px solid #ddd;padding-top:10px">Le professionnel valide les résultats et le rapport définitif.</p></div>';
     for(const other of $$("#report-pages > :not(#axis-report-page)",section))other.hidden=true;
@@ -224,6 +331,7 @@
       updateParcelTotal();
     }
     if(slug==="sondages"){restoreBoreholes(section);syncMultiselects(section)}
+    if(slug==="geometrie")plan(section);
     if(slug==="etudes")studiesPanel(section);
     if(slug==="clients")clientsPanel(section);
     if(slug==="rapport")report(section);
@@ -340,6 +448,7 @@
   }
   function action(event){
     const el=event.target.closest("button");if(!el)return false;
+    if(el.dataset.livePlan)return planAction(el);
     const cmd=el.dataset.liveAction;
     if(cmd==="new-study"||el.dataset.action==="new-study"){
       beforeNavigate();const db=read();const st=fresh();db.studies.push(st);save(db);switchStudy(st.id);return true;
