@@ -1,7 +1,7 @@
 import {test,expect} from "@playwright/test";
 
 test("Site GitHub Pages — la version publiée charge le moteur interactif",async({page})=>{
-  await page.goto("/?build=20261102#dossier",{waitUntil:"domcontentloaded"});
+  await page.goto("?build=20261102#dossier",{waitUntil:"domcontentloaded"});
   await expect(page.locator("#dossier")).toBeVisible();
   await expect(page.locator(".brand")).toContainText("02/11/2026");
   const status=await page.evaluate(()=>({
@@ -14,7 +14,7 @@ test("Site GitHub Pages — la version publiée charge le moteur interactif",asy
 });
 
 test("Site GitHub Pages — surface réellement saisie puis enregistrée",async({page})=>{
-  await page.goto("/?build=20261102#dossier");
+  await page.goto("?build=20261102#dossier");
   await expect(page.locator("#anc-v3-parcel-list")).toBeVisible();
   await page.locator(".anc-p-surface").first().fill("7100");
   await page.locator("#anc-add-parcel").click();
@@ -26,7 +26,7 @@ test("Site GitHub Pages — surface réellement saisie puis enregistrée",async(
 });
 
 test("Site GitHub Pages — Porchet et rapport à partir des données saisies",async({page})=>{
-  await page.goto("/?build=20261102#dossier");
+  await page.goto("?build=20261102#dossier");
   await expect(page.locator("#dossier")).toBeVisible();
   await page.locator('[data-path="owner.lastName"]').fill("TEST REEL PUBLIC");
   await page.locator('#public-tabs [data-tab="porchet"]').click();
