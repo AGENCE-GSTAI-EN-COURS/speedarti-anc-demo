@@ -99,13 +99,55 @@ test("Sprint 4 — sondage et horizon duplicables avec sélecteur pente",async({
   await expect(page.locator("#sondages .item-card")).toHaveCount(count+1);
 });
 
-test("Sprint 4 — détection fictive de la parcelle et recherche BRGM utilisables",async({page})=>{
+test("Cadastre — réponse IGN authentique simulée en recette, surface réellement reliée au dossier",async({page})=>{
+  await page.route("**/api/cadastre/parcelle?**",route=>route.fulfill({
+    status:200,contentType:"application/json",
+    body:JSON.stringify({type:"FeatureCollection",features:[{
+      type:"Feature",properties:{section:"ZZ",numero:"0002",contenance:5033},
+      geometry:{type:"Polygon",coordinates:[[[1.35,44.02],[1.351,44.02],[1.351,44.021],[1.35,44.021],[1.35,44.02]]]}
+    }]})
+  }));
   await page.goto("/#dossier");
   await page.locator("#anc-detect-parcel").click();
-  await expect(page.locator("#anc-parcel-total")).toContainText("5 033");
-  await page.locator("#public-tabs [data-tab='terrain']").click();
-  await page.locator("#anc-brgm-fetch").click();
-  await expect(page.locator("#anc-brgm-summary")).toContainText("démonstration");
+  await expect(page.locator(".anc-p-number").last()).toHaveValue("0002");
+  await expect(page.locator(".anc-p-surface").last()).toHaveValue("5033");
+  await expect(page.locator("#anc-parcel-total")).toContainText("9 833");
+  await page.reload();
+  await expect(page.locator(".anc-p-surface").last()).toHaveValue("5033");
+});
+test("Multi-parcelles — saisie réellement additionnée, suppression et persistance",async({page})=>{
+  await page.goto("/#dossier");
+  await page.locator(".anc-p-surface").first().fill("4000");
+  await page.locator("#anc-add-parcel").click();
+  await expect(page.locator(".anc-v3-parcel")).toHaveCount(2);
+  await page.locator(".anc-p-surface").last().fill("1200");
+  await expect(page.locator("#anc-parcel-total")).toContainText("5 200");
+  await page.locator(".anc-p-remove").last().click();
+  await expect(page.locator("#anc-parcel-total")).toContainText("4 000");
+  await page.reload();
+  await expect(page.locator(".anc-v3-parcel")).toHaveCount(1);
+  await expect(page.locator(".anc-p-surface").first()).toHaveValue("4000");
+});
+test("Géocodage — utilise une vraie requête publique et affiche ses coordonnées",async({page})=>{
+  await page.route("**/geocodage/search?**",route=>route.fulfill({
+    status:200,contentType:"application/json",
+    body:JSON.stringify({features:[{type:"Feature",geometry:{type:"Point",coordinates:[1.353,44.017]},properties:{label:"12 rue des Lilas 82000 Montauban",score:0.96}}]})
+  }));
+  await page.goto("/#dossier");
+  await page.locator('[data-path="parcel.address"]').fill("12 rue des Lilas");
+  await page.locator('[data-path="parcel.postalCode"]').fill("82000");
+  await page.locator('[data-path="parcel.city"]').fill("Montauban");
+  await page.locator('[data-action="geocode-address"]').click();
+  await expect(page.locator('[data-path="parcel.lat"]')).toHaveValue("44.017");
+  await expect(page.locator('[data-path="parcel.lng"]')).toHaveValue("1.353");
+  await expect(page.locator(".geo-meta")).toContainText("12 rue des Lilas");
+});
+test("Cadastre — service indisponible : avertissement sans surface inventée",async({page})=>{
+  await page.route("**/api/cadastre/parcelle?**",route=>route.fulfill({status:503,body:"Service indisponible"}));
+  await page.goto("/#dossier");
+  await page.locator("#anc-detect-parcel").click();
+  await expect(page.locator("#anc-parcel-feedback")).toContainText("HTTP 503");
+  await expect(page.locator(".anc-v3-parcel")).toHaveCount(1);
 });
 
 test("Sprint 4 — photo matériel enregistrée une seule fois et réutilisable",async({page})=>{

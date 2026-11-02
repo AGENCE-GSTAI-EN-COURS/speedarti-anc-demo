@@ -26,7 +26,7 @@
   }
   async function loadSection(slug){
     if(cache.has(slug))return cache.get(slug);
-    const response=await fetch("./sections/"+slug+".html?v=20261031-1645",{cache:"no-store"});
+    const response=await fetch("./sections/"+slug+".html?v=20261102-1220",{cache:"no-store"});
     if(!response.ok)throw Error("Vue "+slug+" indisponible ("+response.status+")");
     const html=await response.text();
     // Les fichiers publics sont générés uniquement depuis un jeu de données factices.
@@ -66,7 +66,7 @@
         const mounted=viewport.querySelector("section");
         try {window.ANCDemoEngine?.addHorizonButtons?.(mounted);}
         catch(err){console.error("ANC demo horizons",slug,err);}
-        try {window.ANCRealWorkflow?.mount?.(mounted,slug);}
+        try {window.ANCRealWorkflow?.mount?.(mounted,slug);window.ANCGeoParcel?.mount?.(mounted);}
         catch(err){
           console.error("ANC demo real workflow mount",slug,err);
           window.__ancMountError={page:slug,message:String(err?.message||err)};
@@ -101,6 +101,7 @@
       else toast("Cette action n'est pas disponible dans le parcours public.");
       return;
     }
+    if(window.ANCGeoParcel?.handle?.(event)){event.preventDefault();return;}
     if(window.ANCRealWorkflow?.handle?.(event)){event.preventDefault();return;}
     if(window.ANCDemoEngine?.handle?.(event)){event.preventDefault();return;}
     const external=event.target.closest("#public-sections a[href]");
