@@ -490,5 +490,6 @@
     if(el.closest(".axis-touch-soils")&&el.matches('input[type="checkbox"]'))onMultiSelect(el);
     if(el.dataset?.path&&el.closest("#public-sections"))commitElement(el);
   },true);
-  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction};
+  function mutateStudy(callback){const db=read(),st=current(db);if(!st)return null;callback(st);save(db);return st;}
+  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction,getStudy:()=>current(read()),mutateStudy};
 })();
