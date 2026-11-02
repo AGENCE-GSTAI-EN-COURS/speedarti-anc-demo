@@ -68,3 +68,18 @@ jobs:
           path: 'site'
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke-live:
+    needs: deploy
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer outils de recette
+        run: npm install --no-audit --no-fund
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Vérifier le VRAI site publié (PC + mobile)
+        run: npx playwright test --config=playwright.live.config.mjs
