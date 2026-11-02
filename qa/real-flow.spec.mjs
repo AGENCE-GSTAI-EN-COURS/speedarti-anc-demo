@@ -117,3 +117,28 @@ test("Plan ANC: maison et annulation du dernier point",async({page})=>{
   await page.locator('[data-live-plan="undo"]').click();
   await expect(svg.locator("circle")).toHaveCount(1);
 });
+
+
+test("Contrôles — les informations du dossier font changer les indicateurs",async({page})=>{
+  await page.goto("/#controles");
+  await expect(page.locator("#live-control-panel")).toBeVisible();
+  await expect(page.locator("#live-control-panel")).toContainText("À COMPLÉTER");
+  await page.locator('#public-tabs [data-tab="dossier"]').click();
+  await page.locator('[data-path="owner.lastName"]').fill("MARTIN");
+  await page.locator('#public-tabs [data-tab="controles"]').click();
+  const client=page.locator("#live-control-panel .live-check-row").filter({hasText:"Client identifié"});
+  await expect(client).toContainText("RENSEIGNÉ");
+});
+test("Autotests publics — résultats de vrais contrôles et non statistique figée",async({page})=>{
+  await page.goto("/#tests");
+  await page.locator('[data-action="run-self-tests"]').click();
+  await expect(page.locator(".live-test-results")).toContainText("5/5");
+  await expect(page.locator(".live-test-results")).toContainText("Enregistrement local");
+  await expect(page.locator(".live-test-results")).toContainText("Dossier actif");
+});
+test("Automatisation — bouton ouvre rapport mis à jour, sans faux EH",async({page})=>{
+  await page.goto("/#automatisation");
+  await expect(page.locator(".live-auto-summary")).toContainText("Les règles de dimensionnement");
+  await page.locator('#automatisation [data-action="generate"]').click();
+  await expect(page.locator("#axis-report-page")).toBeVisible();
+});

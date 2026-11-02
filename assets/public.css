@@ -22,3 +22,5 @@
 .live-plan-svg{display:block;width:100%;height:auto;max-height:540px;border:1px solid #ccdfed;border-radius:10px;background:#eff7fb;cursor:crosshair;touch-action:manipulation}
 .live-plan-svg:focus-visible{outline:3px solid #4da8ea}
 .live-plan-summary{background:#eff7fd;color:#2e607e;border:1px solid #daebf6;border-radius:9px;padding:12px 14px;font-size:12px;font-weight:750;margin-top:11px}
+
+.live-control-panel{margin:16px 0}.live-check-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #dfebf5;background:#fbfdff}.live-check-row>span:first-child{font-weight:850;color:#1268ab;font-size:16px}.live-check-row>div{display:grid;gap:3px;flex:1}.live-check-row strong{color:#203f5c}.live-check-row small{font-size:11px;color:#667c91}.live-check-row>b:last-child{font-size:10px;color:#536d83}.live-control-panel .anc-v3-body{padding:16px}#automatisation .auto-flow[hidden],#automatisation .automation-grid[hidden],#tests .stats[hidden]{display:none!important}
