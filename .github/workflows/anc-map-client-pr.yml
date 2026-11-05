@@ -23,6 +23,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
+      - name: Démarrage Dossier et diagnostic des erreurs
+        run: npx playwright test qa/anc-runtime-invariant.spec.mjs --project=desktop --reporter=line
       - name: Recette desktop et mobile
         run: npm run test:e2e
       - name: Vérification publique sans code privé
