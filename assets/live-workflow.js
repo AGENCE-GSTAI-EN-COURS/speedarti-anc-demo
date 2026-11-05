@@ -317,6 +317,17 @@
   function mount(section,slug){
     bindFields(section);
     if(slug==="dossier"){
+      const h=section.querySelector(".section-head");
+      if(h&&!section.querySelector("#anc-dossier-client-actions")){
+        const controls=document.createElement("div");controls.id="anc-dossier-client-actions";
+        controls.style.cssText="display:flex;gap:8px;flex-wrap:wrap;padding:12px 0";
+        controls.innerHTML='<button type="button" class="btn primary" data-live-action="new-study">+ Nouveau dossier</button><button type="button" class="btn secondary" data-live-action="dossier-new-client">+ Nouveau client</button>';
+        h.insertAdjacentElement("afterend",controls);
+        const form=document.createElement("div");form.id="anc-dossier-client-form";form.className="card";
+        form.hidden=true;
+        form.innerHTML='<div class="card-body"><h3>Créer et affecter un client</h3><div class="grid g3"><label>Prénom<input class="input" data-dossier-client="firstName"></label><label>Nom *<input class="input" data-dossier-client="lastName"></label><label>Commune<input class="input" data-dossier-client="city"></label></div><button type="button" class="btn primary" data-live-action="save-dossier-client">Créer et utiliser ce client</button></div>';
+        controls.insertAdjacentElement("afterend",form);
+      }
       const db=read(),st=current(db);
       if(st&&st.isNew&&!Object.keys(st.fields).length){
         for(const el of $("[data-path]",section)){
@@ -452,6 +463,28 @@
     const cmd=el.dataset.liveAction;
     if(cmd==="new-study"||el.dataset.action==="new-study"){
       beforeNavigate();const db=read();const st=fresh();db.studies.push(st);save(db);switchStudy(st.id);return true;
+    }
+    if(cmd==="dossier-new-client"){
+      const form=$("#anc-dossier-client-form");if(form)form.hidden=!form.hidden;
+      return true;
+    }
+    if(cmd==="save-dossier-client"){
+      const form=$("#anc-dossier-client-form"),data={};
+      if(!form)return true;
+      for(const input of $("[data-dossier-client]",form))data[input.dataset.dossierClient]=input.value.trim();
+      if(!data.lastName){notice("Renseigner le nom du client.");return true;}
+      data.id=id();
+      const db=read(),st=current(db);
+      db.clients.push(data);
+      if(st){
+        st.fields["owner.firstName"]=data.firstName;
+        st.fields["owner.lastName"]=data.lastName;
+        st.fields["parcel.city"]=data.city;
+      }
+      if(!save(db))return true;
+      window.ANCPublicNavigate?.("dossier");
+      notice("Client créé et lié au dossier.");
+      return true;
     }
     if(cmd==="create-client"||el.dataset.action==="new-client-from-draft"){
       const section=$("#clients");const data={};
