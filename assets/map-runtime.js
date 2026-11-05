@@ -72,7 +72,7 @@ function mount(section){
      layers:"SCAN_D_GEOL50",format:"image/png",transparent:true,version:"1.1.1",attribution:"BRGM — carte géologique 1:50 000",maxZoom:18
    });
    mapLayers={osm,ortho,cadastre,geology};
-   L.control.layers({"OpenStreetMap":osm,"Orthophoto IGN":ortho},{"Cadastre IGN":cadastre,"Carte géologique BRGM":geology},{collapsed:false}).addTo(map);
+   L.control.layers({"OpenStreetMap":osm,"Orthophoto IGN":ortho},{"Cadastre IGN":cadastre,"Carte géologique BRGM":geology},{collapsed:true}).addTo(map);
    for(const layer of [osm,ortho,cadastre,geology])layer.on("tileerror",()=>status("Une couche cartographique ne répond pas. Essayer un autre fond ou vérifier la connexion.",true));
    if(coords){marker=L.marker(coords,{draggable:false}).addTo(map).bindPopup("Position du chantier — à confirmer");
      marker.on("dragend",()=>{if(pickerMode){const p=marker.getLatLng();previewPoint(p.lat,p.lng);}});
