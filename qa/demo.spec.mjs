@@ -108,6 +108,9 @@ test("Cadastre — réponse IGN authentique simulée en recette, surface réelle
     }]})
   }));
   await page.goto("/#dossier");
+  await page.locator("details.geo-advanced summary").click();
+  await page.locator('[data-path="parcel.lat"]').fill("44.02");
+  await page.locator('[data-path="parcel.lng"]').fill("1.35");
   await page.locator("#anc-detect-parcel").click();
   await expect(page.locator(".anc-p-number").last()).toHaveValue("0002");
   await expect(page.locator(".anc-p-surface").last()).toHaveValue("5033");
@@ -146,6 +149,9 @@ test("Géocodage — utilise une vraie requête publique et affiche ses coordonn
 test("Cadastre — service indisponible : avertissement sans surface inventée",async({page})=>{
   await page.route("**/api/cadastre/parcelle?**",route=>route.fulfill({status:503,body:"Service indisponible"}));
   await page.goto("/#dossier");
+  await page.locator("details.geo-advanced summary").click();
+  await page.locator('[data-path="parcel.lat"]').fill("44.02");
+  await page.locator('[data-path="parcel.lng"]').fill("1.35");
   await page.locator("#anc-detect-parcel").click();
   await expect(page.locator("#anc-parcel-feedback")).toContainText("HTTP 503");
   await expect(page.locator(".anc-v3-parcel")).toHaveCount(1);
