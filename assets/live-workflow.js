@@ -61,9 +61,17 @@
   }
   function bindFields(section){
     const db=read(),study=current(db);if(!study)return;
-    for(const el of $$("[data-path]",section)){
+    const isolated=!!(study.clientId||study.isNew);
+    for(const el of section.querySelectorAll("[data-path]")){
       const path=el.dataset.path;
       if(Object.prototype.hasOwnProperty.call(study.fields,path))putValue(el,study.fields[path]);
+      else if(isolated){
+        // Ne jamais présenter l'altitude, la géologie ou la surface du dossier SPÉCIMEN
+        // comme si elles appartenaient au client sélectionné.
+        if(el.type==="checkbox"||el.type==="radio")el.checked=false;
+        else if(el.tagName==="SELECT")el.selectedIndex=0;
+        else if(el.type!=="file")el.value="";
+      }
     }
   }
   function captureFieldState(root){
@@ -158,15 +166,82 @@
     $(".section-head",section)?.insertAdjacentElement("afterend",article);
     for(const old of $$(".card",section)){if(old!==article)old.classList.add("live-original-list")}
   }
+  const CLIENT_INPUTS=[
+    ["civility","Civilité"],["firstName","Prénom"],["lastName","Nom *"],["company","Société"],
+    ["email","E-mail"],["phone","Téléphone"],["address","Adresse du projet"],
+    ["postalCode","Code postal"],["city","Commune"],["department","Département"],
+    ["section","Section cadastrale connue"],["parcel","Numéro de parcelle connu"],
+    ["mainRooms","Pièces principales"],["occupants","Occupants"]
+  ];
   function clientsPanel(section){
     $("#live-clients",section)?.remove();
     const db=read(),article=document.createElement("article");
     article.className="card";article.id="live-clients";
-    article.innerHTML='<header class="card-head"><div><h2>Clients de démonstration</h2><p>Créez un client, puis réutilisez-le dans le dossier actif.</p></div></header><div class="card-body">'+
-      '<div class="live-client-create"><label>Prénom<input class="input" data-live-client="firstName" placeholder="Prénom"></label><label>Nom<input class="input" data-live-client="lastName" placeholder="Nom"></label><label>Commune<input class="input" data-live-client="city" placeholder="Commune"></label><button class="btn primary" type="button" data-live-action="create-client">Ajouter le client</button></div>'+
-      '<div class="live-client-list">'+db.clients.map(c=>'<div class="live-study-row"><strong>'+esc(c.firstName+" "+c.lastName)+" — "+esc(c.city)+'</strong><button type="button" class="btn secondary small" data-live-select-client="'+esc(c.id)+'">Utiliser dans le dossier</button></div>').join("")+'</div></div>';
-    $(".section-head",section)?.insertAdjacentElement("afterend",article);
-    for(const old of $$(".card",section)){if(old!==article)old.classList.add("live-original-list")}
+    const items=db.clients.map(c=>'<option value="'+esc(c.id)+'">'+esc([c.firstName,c.lastName].filter(Boolean).join(" ")+" — "+(c.city||"Commune non renseignée"))+'</option>').join("");
+    const rows=db.clients.map(c=>'<div class="live-study-row"><div><strong>'+esc([c.firstName,c.lastName].filter(Boolean).join(" "))+'</strong><small>'+esc([c.address,c.postalCode,c.city].filter(Boolean).join(" "))+'</small></div><button type="button" class="btn secondary small" data-live-select-client="'+esc(c.id)+'">Utiliser dans le dossier</button></div>').join("");
+    const fields=CLIENT_INPUTS.map(([key,label])=>
+      '<label class="field">'+esc(label)+'<input class="input" data-live-client="'+esc(key)+'" '+(key==="email"?'type="email"':key==="mainRooms"||key==="occupants"?'type="number" min="0"':'type="text"')+' autocomplete="off"></label>').join("");
+    article.innerHTML='<header class="card-head"><div><h2>1. Sélectionner le client</h2><p>Répertoire local de démonstration : le raccordement à la base clients SpeedArti reste à réaliser dans l’application privée.</p></div></header>'+
+      '<div class="card-body"><div class="client-toolbar"><label class="field">Client existant<select class="select" id="anc-live-client-select"><option value="">Choisir un client local…</option>'+items+'</select></label>'+
+      '<button type="button" class="btn primary" data-live-action="use-selected-client">Ouvrir et préremplir son dossier</button></div>'+
+      (rows?'<div class="live-client-list">'+rows+'</div>':'<p class="notice info">Aucun client local pour le moment. Ajoutez-en un ci-dessous pour tester le parcours complet.</p>')+
+      '<h3>Ajouter un client au répertoire local</h3><div class="live-client-create grid g3">'+fields+'</div>'+
+      '<button type="button" class="btn primary" data-live-action="create-client">Enregistrer le client local</button>'+
+      '<p class="small-text">Après sélection, les coordonnées du chantier seront recherchées automatiquement si une adresse réelle est renseignée. Le cadastre reste à confirmer par un professionnel.</p></div>';
+    for(const child of Array.from(section.children))if(!child.classList.contains("section-head"))child.hidden=true;
+    section.querySelector(".section-head")?.insertAdjacentElement("afterend",article);
+  }
+  function hasUsableAddress(fields){
+    const addr=String(fields["parcel.address"]||"").trim(),city=String(fields["parcel.city"]||"").trim();
+    return addr.length>=4&&city.length>=2&&!/d[ée]mo|d[ée]monstration|exemple|commune test/i.test(addr+" "+city);
+  }
+  function applyClient(st,client){
+    const c=client||{};
+    if(!st.clientId){st.fields={};st.cells={};st.plan=null;}
+    const fields=st.fields||(st.fields={});
+    const mapping={
+      "owner.civility":"civility","owner.firstName":"firstName","owner.lastName":"lastName",
+      "owner.company":"company","owner.email":"email","owner.phone":"phone",
+      "parcel.address":"address","parcel.postalCode":"postalCode","parcel.city":"city",
+      "parcel.department":"department","parcel.section":"section","parcel.number":"parcel",
+      "building.mainRooms":"mainRooms","building.occupants":"occupants"
+    };
+    for(const [path,source] of Object.entries(mapping))fields[path]=String(c[source]??"");
+    st.clientId=c.id;
+    fields.selectedClientId=c.id;
+    st.name="Étude ANC — "+[c.firstName,c.lastName].filter(Boolean).join(" ");
+    fields.title=st.name;
+    fields.reference=st.id;
+    st.parcels=c.section&&c.parcel?[{
+      id:"client_"+c.id,label:"Parcelle renseignée par le client",
+      section:String(c.section),number:String(c.parcel),area:"",
+      source:"Fiche client — surface à vérifier",status:"TO_CONFIRM"
+    }]:[];
+    fields["parcel.area"]="";
+    fields["parcel.totalArea"]="";
+    fields["parcel.lat"]="";
+    fields["parcel.lng"]="";
+    st.geolocation=null;
+    st.cadastralGeometry=null;
+    st.pendingAutoLocate=hasUsableAddress(fields);
+    st.isNew=false;
+  }
+  function selectClientForDossier(clientId,{reuseCurrent=false}={}){
+    // Capture the active view before changing the dossier to avoid overwriting the new client.
+    beforeNavigate();
+    const db=read(),client=db.clients.find(c=>c.id===clientId);
+    if(!client)return notice("Client introuvable dans le répertoire local."),false;
+    let st=current(db);
+    // An existing dossier belongs to another client: never reuse its former parcels or reports.
+    if(!st||(st.clientId&&st.clientId!==client.id)||(!reuseCurrent&&(st.clientId!==client.id||st.name==="Étude ANC — exemple"))){
+      st=fresh();db.studies.push(st);db.activeId=st.id;
+    }
+    applyClient(st,client);
+    save(db);loadPorchet(st);
+    localStorage.removeItem("speedarti-anc-public-sprint4-v1");
+    window.location.hash="dossier";
+    window.location.reload();
+    return true;
   }
 
   // Outils de plan de démonstration réellement interactifs.
@@ -337,7 +412,7 @@
         h.insertAdjacentElement("afterend",controls);
         const form=document.createElement("div");form.id="anc-dossier-client-form";form.className="card";
         form.hidden=true;
-        form.innerHTML='<div class="card-body"><h3>Créer et affecter un client</h3><div class="grid g3"><label>Prénom<input class="input" data-dossier-client="firstName"></label><label>Nom *<input class="input" data-dossier-client="lastName"></label><label>Commune<input class="input" data-dossier-client="city"></label></div><button type="button" class="btn primary" data-live-action="save-dossier-client">Créer et utiliser ce client</button></div>';
+        form.innerHTML='<div class="card-body"><h3>Créer et affecter un client</h3><div class="grid g3">'+CLIENT_INPUTS.map(([key,label])=>'<label class="field">'+esc(label)+'<input class="input" data-dossier-client="'+esc(key)+'" type="text"></label>').join("")+'</div><button type="button" class="btn primary" data-live-action="save-dossier-client">Créer et utiliser ce client</button></div>';
         controls.insertAdjacentElement("afterend",form);
       }
       const db=read(),st=current(db);
@@ -482,32 +557,24 @@
       return true;
     }
     if(cmd==="save-dossier-client"){
-      const form=$("#anc-dossier-client-form"),data={};
-      if(!form)return true;
+      const form=$("#anc-dossier-client-form"),data={};if(!form)return true;
       for(const input of $$("[data-dossier-client]",form))data[input.dataset.dossierClient]=input.value.trim();
       if(!data.lastName){notice("Renseigner le nom du client.");return true;}
       data.id=id();
-      const db=read(),st=current(db);
-      db.clients.push(data);
-      if(st){
-        st.fields["owner.firstName"]=data.firstName;
-        st.fields["owner.lastName"]=data.lastName;
-        st.fields["parcel.city"]=data.city;
-      }
-      if(!save(db))return true;
-      for(const [path,value] of [["owner.firstName",data.firstName],["owner.lastName",data.lastName],["parcel.city",data.city]]){
-        const input=sectionField(path);if(input)input.value=value;
-      }
-      form.hidden=true;
-      notice("Client créé et lié au dossier.");
-      return true;
+      const db=read();db.clients.push(data);if(!save(db))return true;
+      return selectClientForDossier(data.id,{reuseCurrent:true});
     }
     if(cmd==="create-client"||el.dataset.action==="new-client-from-draft"){
-      const section=$("#clients");const data={};
+      const section=$("#clients"),data={};
       for(const input of $$("[data-live-client]",section))data[input.dataset.liveClient]=input.value.trim();
-      if(!data.lastName)return notice("Renseigner le nom du client."),true;
+      if(!data.lastName){notice("Renseigner le nom du client.");return true;}
       data.id=id();const db=read();db.clients.push(data);save(db);
-      window.ANCPublicNavigate?.("clients");notice("Client créé pour cette démo.");return true;
+      window.ANCPublicNavigate?.("clients");notice("Client enregistré dans ce navigateur.");return true;
+    }
+    if(cmd==="use-selected-client"){
+      const clientId=$("#anc-live-client-select")?.value;
+      if(!clientId){notice("Sélectionnez un client avant d'ouvrir son dossier.");return true;}
+      return selectClientForDossier(clientId);
     }
     if(el.dataset.liveOpen){switchStudy(el.dataset.liveOpen);return true}
     if(el.dataset.liveDuplicate){duplicateStudy(el.dataset.liveDuplicate);return true}
@@ -516,15 +583,7 @@
       if(st){st.archived=!st.archived;save(db);window.ANCPublicNavigate?.("etudes")}
       return true;
     }
-    if(el.dataset.liveSelectClient){
-      const db=read(),st=current(db),c=db.clients.find(x=>x.id===el.dataset.liveSelectClient);
-      if(st&&c){
-        st.fields["owner.firstName"]=c.firstName;st.fields["owner.lastName"]=c.lastName;
-        st.fields["parcel.city"]=c.city;save(db);
-        window.ANCPublicNavigate?.("dossier");notice("Client affecté au dossier.");
-      }
-      return true;
-    }
+    if(el.dataset.liveSelectClient){return selectClientForDossier(el.dataset.liveSelectClient);}
     return false;
   }
   document.addEventListener("input",event=>{

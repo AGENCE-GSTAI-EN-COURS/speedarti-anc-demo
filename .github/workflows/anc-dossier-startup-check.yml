@@ -1,0 +1,18 @@
+name: ANC — diagnostic démarrage dossier
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  dossier-startup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test qa/anc-runtime-invariant.spec.mjs --project=desktop --reporter=line

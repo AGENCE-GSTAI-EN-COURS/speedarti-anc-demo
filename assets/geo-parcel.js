@@ -16,6 +16,67 @@ const num=x=>{
  return Number.isFinite(parsed)?parsed:null;
 };
 let busy=false;
+let autoLocateTimer=null;
+const addressParts=["parcel.address","parcel.postalCode","parcel.city"];
+const addressKey=f=>addressParts.map(key=>String(f?.[key]||"").trim().toLocaleLowerCase("fr-FR")).join("|");
+function addressReady(f){
+ const addr=String(f?.["parcel.address"]||"").trim(),city=String(f?.["parcel.city"]||"").trim();
+ return addr.length>=4&&city.length>=2&&!/d[ée]mo|d[ée]monstration|exemple|commune test/i.test(addr+" "+city);
+}
+function syncLocationFields(){
+ const fields=get()?.fields||{};
+ for(const key of addressParts){
+   const value=String(fields[key]||"");
+   const field=$('[data-path="'+key+'"]');if(field&&field.value!==value)field.value=value;
+   const edit=$('[data-location-entry="'+key+'"]');if(edit&&edit.value!==value)edit.value=value;
+ }
+ for(const key of ["parcel.lat","parcel.lng"]){
+   const field=$('[data-path="'+key+'"]');if(field)field.value=String(fields[key]||"");
+ }
+}
+function invalidateOldDetection(){
+ mutate(st=>{
+   st.parcels=(st.parcels||[]).filter(p=>p.status!=="AUTO_DETECTED");
+   st.geolocation=null;
+   st.cadastralGeometry=null;
+   st.fields["parcel.lat"]="";
+   st.fields["parcel.lng"]="";
+   st.fields["parcel.area"]="";
+   st.fields["parcel.totalArea"]="";
+   const first=st.parcels.find(p=>p.section&&p.number);
+   st.fields["parcel.section"]=first?.section||"";
+   st.fields["parcel.number"]=first?.number||"";
+ });
+ window.ANCMapRuntime?.clearParcel?.();
+ render();
+}
+function topLocation(section){
+ const location=$(".geo-location-card",section)?.closest("article");
+ if(!location)return;
+ // La recherche d'adresse précède désormais l'identification du dossier.
+ section.querySelector(".section-head")?.insertAdjacentElement("afterend",location);
+ let form=$("#anc-location-entry",location);
+ if(!form){
+   form=document.createElement("div");form.id="anc-location-entry";
+   form.className="grid g3";
+   form.style.cssText="padding:12px 0;gap:12px";
+   const labels=[["parcel.address","Adresse du projet"],["parcel.postalCode","Code postal"],["parcel.city","Commune"]];
+   form.innerHTML=labels.map(([key,label])=>'<label class="field"><strong>'+esc(label)+'</strong><input type="text" class="input" data-location-entry="'+key+'" autocomplete="off" placeholder="'+esc(label)+'"></label>').join("");
+   location.querySelector(".geo-location-main")?.insertBefore(form,location.querySelector(".geo-status-row"));
+ }
+ syncLocationFields();
+ let status=$("#anc-location-chain-status",location);
+ if(!status){
+   status=document.createElement("p");status.id="anc-location-chain-status";status.className="anc-source-note";
+   form.insertAdjacentElement("afterend",status);
+ }
+ const st=get();
+ status.textContent=st?.geolocation?.source?
+   "Localisation enregistrée ("+st.geolocation.source+"). Section et surface cadastrales ci-dessous, à confirmer.":
+   addressReady(st?.fields)?"Adresse prête : localisation IGN puis recherche cadastrale automatique.":
+   "Compléter l'adresse et la commune, ou utiliser le GPS. La section et la surface se rempliront après détection.";
+}
+
 function message(m,error=false){
   let el=$("#anc-parcel-feedback");
   if(!el&&$("#anc-v3-parcels")){
@@ -97,7 +158,7 @@ function syncPrimaryFields(){
   }
   const meta=$(".geo-meta");
   if(meta){
-    const spans=$("span",meta);
+    const spans=meta.querySelectorAll("span");
     if(spans[3])spans[3].textContent=parcels.filter(p=>p.section&&p.number).map(p=>p.section+" "+p.number).join(", ")||"Non détectée";
   }
 }
@@ -150,6 +211,13 @@ function mount(section){
     if(labels[3])labels[3].textContent=st?.parcels?.map(p=>p.section&&p.number?p.section+" "+p.number:"").filter(Boolean).join(", ")||"Non détectée";
   }
   render();syncPrimaryFields();
+  topLocation(section);
+  const current=get();
+  if(addressReady(current?.fields)&&
+     (current?.pendingAutoLocate||(!current?.geolocation&&!current?.lastAutoLocateAttemptKey))){
+    mutate(s=>{s.pendingAutoLocate=false;s.lastAutoLocateAttemptKey=addressKey(s.fields);});
+    setTimeout(()=>{if($("#dossier"))geocode();},100);
+  }
 }
 function addParcel(){
   mutate(st=>{st.parcels=st.parcels||[];st.parcels.push(create());});
@@ -182,35 +250,47 @@ async function json(url){
   }finally{clearTimeout(stop);}
 }
 async function geocode(){
-  if(busy)return;busy=true;
-  try{
-    const f=path=>$('[data-path="'+path+'"]')?.value?.trim()||"";
-    const query=[f("parcel.address"),f("parcel.postalCode"),f("parcel.city")].filter(Boolean).join(" ");
-    if(query.length<8||/d[ée]monstration|commune d[ée]mo/i.test(query))
-      throw Error("Saisir une véritable adresse de chantier, pas l’adresse fictive de l’exemple.");
-    message("Recherche de l’adresse auprès de la Géoplateforme IGN…");
-    const data=await json("https://data.geopf.fr/geocodage/search?q="+encodeURIComponent(query)+"&limit=1");
-    const feature=data.features?.[0];const coords=feature?.geometry?.coordinates;
-    if(!Array.isArray(coords)||coords.length<2)throw Error("Adresse introuvable. Vérifier l'adresse et la commune.");
-    const lng=Number(coords[0]),lat=Number(coords[1]);
-    if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Coordonnées de la source non valides.");
-    const label=String(feature.properties?.label||query);
-    const score=feature.properties?.score;
-    mutate(st=>{
-      st.fields["parcel.lat"]=String(lat);
-      st.fields["parcel.lng"]=String(lng);
-      st.geolocation={lat,lng,label,score,source:"Géoplateforme IGN/BAN",at:new Date().toISOString()};
-    });
-    const a=$('[data-path="parcel.lat"]'),b=$('[data-path="parcel.lng"]');
-    if(a)a.value=String(lat);if(b)b.value=String(lng);
-    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
-    message("Adresse reconnue : "+label+" — latitude "+lat.toFixed(5)+", longitude "+lng.toFixed(5)+". Recherche automatique de parcelle…");
-    setTimeout(()=>detectParcel(),250);
-  }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
-  finally{busy=false;}
+ clearTimeout(autoLocateTimer);
+ if(busy)return message("Recherche précédente en cours.",true);
+ const before=get(),studyId=before?.id,lookupKey=addressKey(before?.fields);
+ if(!addressReady(before?.fields))return message("Renseigner une adresse de projet et une commune réelles (ou utiliser le GPS).",true);
+ busy=true;let shouldDetect=false;
+ try{
+   const f=before.fields;
+   const query=addressParts.map(key=>String(f[key]||"").trim()).filter(Boolean).join(" ");
+   message("Recherche de l'adresse et de la parcelle auprès de l'IGN…");
+   const data=await json("https://data.geopf.fr/geocodage/search?q="+encodeURIComponent(query)+"&limit=1");
+   const feature=data.features?.[0],coords=feature?.geometry?.coordinates;
+   if(!Array.isArray(coords)||coords.length<2)throw Error("Adresse introuvable. Vérifier la rue et la commune.");
+   const lng=Number(coords[0]),lat=Number(coords[1]);
+   if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Coordonnées non valides.");
+   if(get()?.id!==studyId||addressKey(get()?.fields)!==lookupKey)return;
+   const properties=feature.properties||{},label=String(properties.label||query);
+   invalidateOldDetection();
+   mutate(st=>{
+     if(st.id!==studyId)return;
+     st.fields["parcel.lat"]=String(lat);st.fields["parcel.lng"]=String(lng);
+     if(properties.name)st.fields["parcel.address"]=String(properties.name);
+     if(properties.postcode)st.fields["parcel.postalCode"]=String(properties.postcode);
+     if(properties.city)st.fields["parcel.city"]=String(properties.city);
+     st.locationAddressKey=addressKey(st.fields);
+     st.geolocation={lat,lng,label,score:properties.score,source:"Géoplateforme IGN/BAN",at:new Date().toISOString()};
+   });
+   syncLocationFields();
+   mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
+   message("Adresse reconnue : "+label+". Recherche de la parcelle et de sa superficie…");
+   shouldDetect=true;
+ }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
+ finally{busy=false}
+ // Ne pas laisser une minuterie indépendante en cas de changement de client.
+ if(shouldDetect&&get()?.id===studyId)await detectParcel();
 }
 async function detectParcel(){
-  if(busy)return;busy=true;
+  if(busy)return message("Une recherche est déjà en cours.",true);
+  const fields=get()?.fields||{};
+  const lat=num(fields["parcel.lat"]),lng=num(fields["parcel.lng"]);
+  if((lat===null||lng===null)&&addressReady(fields))return geocode();
+  busy=true;
   try{
     const f=path=>$('[data-path="'+path+'"]')?.value||"";
     const lat=num(f("parcel.lat")),lng=num(f("parcel.lng"));
@@ -249,19 +329,38 @@ async function detectParcel(){
   finally{busy=false}
 }
 function gps(){
-  if(!navigator.geolocation)return message("La géolocalisation n’est pas disponible sur ce navigateur.",true);
-  message("Demande d’autorisation de localisation GPS…");
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const lat=pos.coords.latitude,lng=pos.coords.longitude;
-    mutate(st=>{
-      st.fields["parcel.lat"]=String(lat);st.fields["parcel.lng"]=String(lng);
-      st.geolocation={lat,lng,label:"GPS de l’appareil",source:"GPS",at:new Date().toISOString()};
-    });
-    for(const [key,value] of [["parcel.lat",lat],["parcel.lng",lng]]){
-      const el=$('[data-path="'+key+'"]');if(el)el.value=String(value);
-    }
-    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();message("Position GPS renseignée. Vérifier le point avant de détecter la parcelle.");
-  },err=>message("GPS non disponible : "+(err.message||"Autorisation refusée"),true),{timeout:12000,enableHighAccuracy:true});
+ clearTimeout(autoLocateTimer);
+ if(!navigator.geolocation)return message("Géolocalisation GPS indisponible sur cet appareil.",true);
+ message("Autorisation GPS requise. Le point localisé devra être vérifié sur la carte.");
+ navigator.geolocation.getCurrentPosition(async pos=>{
+   const studyId=get()?.id,lat=pos.coords.latitude,lng=pos.coords.longitude;
+   invalidateOldDetection();
+   mutate(st=>{
+     if(st.id!==studyId)return;
+     st.fields["parcel.lat"]=String(lat);st.fields["parcel.lng"]=String(lng);
+     st.geolocation={lat,lng,label:"Position GPS de l'appareil",source:"GPS",accuracy:pos.coords.accuracy,at:new Date().toISOString()};
+   });
+   // Géocodage inverse pour compléter l'adresse du projet, sans inventer de commune.
+   try{
+     const r=await json("https://data.geopf.fr/geocodage/reverse?lon="+encodeURIComponent(lng)+"&lat="+encodeURIComponent(lat));
+     const p=r.features?.[0]?.properties||{};
+     if(get()?.id!==studyId)return;
+     mutate(st=>{
+       if(st.id!==studyId)return;
+       if(p.name)st.fields["parcel.address"]=String(p.name);
+       else if(p.street)st.fields["parcel.address"]=[p.housenumber,p.street].filter(Boolean).join(" ");
+       if(p.postcode)st.fields["parcel.postalCode"]=String(p.postcode);
+       if(p.city)st.fields["parcel.city"]=String(p.city);
+       if(p.citycode&&p.citycode.length>=2)st.fields["parcel.department"]=String(p.citycode).slice(0,2);
+       st.geolocation.label=p.label||st.geolocation.label;
+       st.locationAddressKey=addressKey(st.fields);
+     });
+   }catch(err){message("GPS obtenu, mais adresse inverse indisponible. Le cadastre sera néanmoins interrogé.")}
+   syncLocationFields();
+   mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
+   if(get()?.id===studyId)await detectParcel();
+ },err=>message("GPS non disponible : "+(err.message||"Autorisation refusée"),true),
+ {timeout:12000,enableHighAccuracy:true,maximumAge:0});
 }
 function handle(event){
   const el=event.target.closest("button");if(!el)return false;
@@ -273,19 +372,34 @@ function handle(event){
   return false;
 }
 document.addEventListener("input",event=>{
-  const el=event.target;
-  if(el.matches("[data-parcel-field]"))editParcel(el);
+ const el=event.target;
+ if(el.matches("[data-parcel-field]"))editParcel(el);
+ const key=el?.dataset?.locationEntry;
+ if(addressParts.includes(key)){
+   const value=el.value;
+   const original=$('#dossier [data-path="'+key+'"]');
+   if(original)original.value=value;
+   mutate(st=>{st.fields[key]=value;});
+ }
 },true);
-let autoLocateTimer;
 document.addEventListener("change",event=>{
-  if(["parcel.address","parcel.postalCode","parcel.city"].includes(event.target?.dataset?.path)){
-    clearTimeout(autoLocateTimer);
-    autoLocateTimer=setTimeout(()=>{
-      const q=["parcel.address","parcel.postalCode","parcel.city"].map(p=>document.querySelector('[data-path="'+p+'"]')?.value?.trim()||"");
-      if(q.every(Boolean)&&!q.some(v=>/d[ée]mo|d[ée]monstration|exemple/i.test(v)))geocode();
-    },700);
-  }
-  const el=event.target;if(el.matches("[data-parcel-field]"))editParcel(el);
+ const el=event.target;
+ if(el.matches("[data-parcel-field]"))editParcel(el);
+ const key=el?.dataset?.locationEntry||el?.dataset?.path;
+ if(!addressParts.includes(key))return;
+ const value=el.value;
+ const before=get(),previousKey=before?.locationAddressKey;
+ mutate(st=>{st.fields[key]=value;});
+ syncLocationFields();
+ const now=get();
+ if(previousKey&&previousKey!==addressKey(now?.fields))invalidateOldDetection();
+ clearTimeout(autoLocateTimer);
+ if(addressReady(now?.fields)){
+   autoLocateTimer=setTimeout(()=>{if($("#dossier"))geocode();},800);
+ }else{
+   const status=$("#anc-location-chain-status");
+   if(status)status.textContent="Adresse incomplète : compléter la rue et la commune ou utiliser le GPS.";
+ }
 },true);
 window.ANCGeoParcel={mount,handle,geometryArea};
 })();
