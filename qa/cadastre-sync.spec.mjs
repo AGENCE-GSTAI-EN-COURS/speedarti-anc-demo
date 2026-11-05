@@ -43,6 +43,9 @@ test("Régression terrain : la surface totale reste remplie après changement d'
  coordinates:[[[1.35,44.02],[1.3501,44.02],[1.3501,44.0201],[1.35,44.0201],[1.35,44.02]]]}}]})
  }));
  await page.goto("/#dossier");
+ await page.locator("details.geo-advanced summary").click();
+ await page.locator('[data-path="parcel.lat"]').fill("44.02");
+ await page.locator('[data-path="parcel.lng"]').fill("1.35");
  await page.locator("#anc-detect-parcel").click();
  await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1564");
  await expect(page.locator("#anc-parcel-surface-source")).toContainText("contenance source");
