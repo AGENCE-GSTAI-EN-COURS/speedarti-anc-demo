@@ -111,7 +111,8 @@ test("Cadastre — réponse IGN authentique simulée en recette, surface réelle
   await page.locator("#anc-detect-parcel").click();
   await expect(page.locator(".anc-p-number").last()).toHaveValue("0002");
   await expect(page.locator(".anc-p-surface").last()).toHaveValue("5033");
-  await expect(page.locator("#anc-parcel-total")).toContainText("9 833");
+  await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("5033");
+  await expect(page.locator(".anc-v3-parcel")).toHaveCount(1);
   await page.reload();
   await expect(page.locator(".anc-p-surface").last()).toHaveValue("5033");
 });
