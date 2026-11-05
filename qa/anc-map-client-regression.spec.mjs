@@ -25,3 +25,30 @@ test("Dossier et plan : carte interactive affichée ou erreur explicite",async({
  await expect(page.locator(".anc-real-map-card .anc-map-canvas")).toBeVisible();
  await expect(page.locator("#anc-v3-live-map")).toBeHidden();
 });
+
+test("Carte active : charge Leaflet et les fonds de carte",async({page})=>{
+ await page.goto("/#dossier");
+ await expect(page.locator(".geo-map-frame .leaflet-container")).toBeVisible({timeout:20000});
+ await expect(page.locator(".leaflet-control-layers")).toContainText("Orthophoto IGN");
+ await page.locator('#public-tabs [data-tab="geometrie"]').click();
+ await expect(page.locator(".anc-real-map-card .leaflet-container")).toBeVisible({timeout:20000});
+});
+test("Adresse → IGN → cadastre : les coordonnées et le contour sont reliés à la carte",async({page})=>{
+ await page.route("**/geocodage/search?**",async(route)=>route.fulfill({
+   status:200,contentType:"application/json",
+   body:JSON.stringify({features:[{geometry:{type:"Point",coordinates:[1.35,44.02]},properties:{label:"Adresse test à Montauban",score:.91}}]})
+ }));
+ await page.route("**/api/cadastre/parcelle?**",async(route)=>route.fulfill({
+   status:200,contentType:"application/json",
+   body:JSON.stringify({features:[{type:"Feature",properties:{section:"AB",numero:"0042",contenance:725},geometry:{type:"Polygon",coordinates:[[[1.3499,44.0199],[1.3501,44.0199],[1.3501,44.0201],[1.3499,44.0201],[1.3499,44.0199]]]}}]})
+ }));
+ await page.goto("/#dossier");
+ await expect(page.locator(".leaflet-container")).toBeVisible({timeout:20000});
+ await page.locator('[data-path="parcel.address"]').fill("12 rue du Test");
+ await page.locator('[data-path="parcel.postalCode"]').fill("82000");
+ await page.locator('[data-path="parcel.city"]').fill("Montauban");
+ await page.locator('[data-action="geocode-address"]').click();
+ await expect(page.locator('[data-path="parcel.lat"]')).toHaveValue("44.02");
+ await expect(page.locator(".anc-p-number").first()).toHaveValue("0042",{timeout:12000});
+ await expect(page.locator(".geo-map-frame .leaflet-interactive")).toHaveCount(1);
+});
