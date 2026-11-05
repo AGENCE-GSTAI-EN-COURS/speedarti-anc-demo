@@ -233,7 +233,7 @@ async function detectParcel(){
       if(exists){
         exists.area=entry.area;
         exists.source=src;exists.status="AUTO_DETECTED";
-      }else if(st.parcels.length===1&&((st.geolocation?.source==="Géoplateforme IGN/BAN"&&String(st.parcels[0].source||"").startsWith("Exemple du dossier"))||(st.parcels[0].area===""&&!st.parcels[0].number)))
+      }else if(st.parcels.length===1&&(String(st.parcels[0].source||"").startsWith("Exemple du dossier")||(st.parcels[0].area===""&&!st.parcels[0].number)))
         st.parcels[0]=entry;
       else st.parcels.push(entry);
       st.fields["parcel.section"]=section;st.fields["parcel.number"]=number;
