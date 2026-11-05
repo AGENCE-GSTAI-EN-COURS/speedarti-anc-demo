@@ -50,7 +50,8 @@ function dossierFields(){return window.ANCRealWorkflow?.getStudy?.()?.fields||{}
 function snapshot(book,key){
  const st=privateState();
  const meta=book.fields||{};
- return {dossier:meta.dossier??st?.reference??"",
+ const d=dossierFields();
+ return {dossier:d.reference||meta.dossier||st?.reference||"",
    client:[d["owner.firstName"],d["owner.lastName"]].filter(Boolean).join(" ")||meta.client||[st?.owner?.firstName,st?.owner?.lastName].filter(Boolean).join(" "),
    date:d["visit.studyDate"]||meta.date||st?.visit?.studyDate||"",
    technician:meta.technician??"",
@@ -188,14 +189,14 @@ function shell(book,key){
    (privateState()?'':'<div class="s4-footer"><span class="s4-save-label">✓ Enregistrement automatique</span><span class="s4-footer-buttons"><button type="button" class="btn secondary" data-demo-nav="sondages">← Précédent</button><button type="button" class="btn primary" data-demo-nav="geometrie">Suivant →</button></span></div>');
 }
 function chart(rows){
- const points=rows.filter(r=>r.volume!==null);
+ const points=rows.filter(r=>r.volume!==null&&r.minutes!==null&&r.minutes>=0);
  if(points.length===0)return '<div class="px-chart-empty">La courbe apparaît dès que les graduations sont renseignées.</div>';
  const maxX=Math.max(1,...points.map(p=>p.minutes||0)),maxY=Math.max(1,...points.map(p=>p.volume))*1.15;
  const plot=p=>[50+p.minutes/maxX*560,235-p.volume/maxY*195];
  const line=points.map((p,i)=>(i?"L":"M")+plot(p).map(x=>x.toFixed(1)).join(",")).join(" ");
  const dots=points.map(p=>{const [x,y]=plot(p);return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4" fill="#1674dc"/>';}).join("");
  const horizontal=[0,0.25,0.5,0.75,1].map(v=>{const y=235-195*v;return '<line x1="50" x2="610" y1="'+y+'" y2="'+y+'" stroke="#e4ecf5"/><text x="44" y="'+(y+4)+'" text-anchor="end" fill="#6f8198" font-size="11">'+format(maxY*v,0)+'</text>'}).join("");
- const xLabels=[0,.25,.5,.75,1].map(frac=>{const x=maxX*frac;return '<text x="'+(50+x/30*560)+'" y="254" text-anchor="middle" fill="#6f8198" font-size="11">'+x+'</text>'}).join("");
+ const xLabels=[0,.25,.5,.75,1].map(frac=>{const x=maxX*frac;return '<text x="'+(50+x/maxX*560)+'" y="254" text-anchor="middle" fill="#6f8198" font-size="11">'+x+'</text>'}).join("");
  return '<div class="px-chart"><svg viewBox="0 0 650 287" role="img" aria-label="Méthode graphique : volume infiltré (ml) selon le temps (min)">'+
    horizontal+'<path d="'+line+'" fill="none" stroke="#1575e2" stroke-width="3" stroke-linejoin="round"/>'+dots+xLabels+
    '<text x="330" y="280" fill="#566d8c" text-anchor="middle" font-size="12">Temps (min)</text>'+
