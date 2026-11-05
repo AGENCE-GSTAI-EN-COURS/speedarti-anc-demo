@@ -59,7 +59,8 @@ function mount(section,slug){
   active=slug;
   clearTimeout(timer);
   const data=state();
-  if(typeof data.sections?.[slug]==="string"){
+  // Les instantanés HTML d’anciennes versions ne doivent plus remplacer les écrans connectés.
+  if(slug==="sondages"&&typeof data.sections?.[slug]==="string"){
     const parsed=new DOMParser().parseFromString(data.sections[slug],"text/html");
     const saved=parsed.querySelector("section#"+slug);
     if(saved){sanitize(saved);section.replaceWith(document.importNode(saved,true));section=$("#public-sections section");}
@@ -142,6 +143,15 @@ function addBorehole(clicked,copy=false){
   const newBi=items.length,oldBi=copy?items.indexOf(src):items.length-1;
   const clone=src.cloneNode(true);
   reindex(clone,newBi,oldBi,null,null);
+  if(!copy){
+    const horizons=$(".horizon",clone);
+    horizons.slice(1).forEach(x=>x.remove());
+    $("input,textarea,select",clone).forEach(input=>{
+      if(input.matches('input[type="checkbox"],input[type="radio"]'))input.checked=false;
+      else if(input.tagName==="SELECT")input.selectedIndex=0;
+      else input.value="";
+    });
+  }
   const title=$(".item-card-head strong",clone);
   if(title)title.textContent="Sondage S"+(newBi+1)+" — démo";
   const label=$('input[data-path$=".label"]',clone);
@@ -171,6 +181,7 @@ function addHorizon(button,duplicate=false){
     const dup=document.createElement("button");dup.type="button";dup.className="icon-btn";dup.dataset.demoDuplicateHorizon="1";dup.dataset.bi=String(bi);dup.dataset.hi=String(newHi);dup.textContent="⧉";dup.title="Dupliquer cet horizon";
     del.before(dup);
   }
+  if(!duplicate){$("input,textarea",clone).forEach(input=>{if(input.type!=="checkbox")input.value="";});if(from)from.value=String(last);if(to)to.value=String(last+depth);}
   horizons[horizons.length-1].after(clone);queueSave();
   text("Horizon dupliqué — profondeurs à vérifier sur le terrain.");
 }
@@ -366,10 +377,8 @@ function handle(event){
   if(action==="geocode-address"||action==="detect-parcel"||el.id==="anc-detect-parcel"){parcel();return true;}
   if(action==="use-device-gps"){text("Position de démonstration uniquement — coordonnées réelles non collectées.");return true;}
   if(el.id==="anc-add-parcel"){parcel();text("Parcelle de démonstration ajoutée au total fictif.");return true;}
-  if(el.id==="anc-brgm-fetch"){brgm(el);return true;}
+  if(el.id==="anc-brgm-fetch"||el.id==="anc-weather-fetch"||el.id==="anc-env-prepare"||el.id==="anc-georisques-report")return false;
   if(el.id==="anc-brgm-open"){brgm(el);return true;}
-  if(el.id==="anc-weather-fetch"||el.id==="anc-env-prepare"){simulate(el,"Données météo et environnement fictives");return true;}
-  if(el.id==="anc-georisques-report"){simulate(el,"Aperçu risques fictifs");return true;}
   if(el.classList.contains("axis-ann-add")){addAnnotation();return true;}
   if(action==="new-study"){topAction("version");text("Vous pouvez commencer un nouveau dossier fictif en modifiant les champs Dossier.");window.ANCPublicNavigate?.("dossier");return true;}
   if(action==="duplicate-study"||action==="save-version"){topAction("version");return true;}
