@@ -248,32 +248,39 @@ async function json(url){
   }finally{clearTimeout(stop);}
 }
 async function geocode(){
-  if(busy)return;busy=true;
-  try{
-    const f=path=>$('[data-path="'+path+'"]')?.value?.trim()||"";
-    const query=[f("parcel.address"),f("parcel.postalCode"),f("parcel.city")].filter(Boolean).join(" ");
-    if(query.length<8||/d[ée]monstration|commune d[ée]mo/i.test(query))
-      throw Error("Saisir une véritable adresse de chantier, pas l’adresse fictive de l’exemple.");
-    message("Recherche de l’adresse auprès de la Géoplateforme IGN…");
-    const data=await json("https://data.geopf.fr/geocodage/search?q="+encodeURIComponent(query)+"&limit=1");
-    const feature=data.features?.[0];const coords=feature?.geometry?.coordinates;
-    if(!Array.isArray(coords)||coords.length<2)throw Error("Adresse introuvable. Vérifier l'adresse et la commune.");
-    const lng=Number(coords[0]),lat=Number(coords[1]);
-    if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Coordonnées de la source non valides.");
-    const label=String(feature.properties?.label||query);
-    const score=feature.properties?.score;
-    mutate(st=>{
-      st.fields["parcel.lat"]=String(lat);
-      st.fields["parcel.lng"]=String(lng);
-      st.geolocation={lat,lng,label,score,source:"Géoplateforme IGN/BAN",at:new Date().toISOString()};
-    });
-    const a=$('[data-path="parcel.lat"]'),b=$('[data-path="parcel.lng"]');
-    if(a)a.value=String(lat);if(b)b.value=String(lng);
-    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
-    message("Adresse reconnue : "+label+" — latitude "+lat.toFixed(5)+", longitude "+lng.toFixed(5)+". Recherche automatique de parcelle…");
-    setTimeout(()=>detectParcel(),250);
-  }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
-  finally{busy=false;}
+ if(busy)return message("Recherche précédente en cours.",true);
+ const before=get(),studyId=before?.id,lookupKey=addressKey(before?.fields);
+ if(!addressReady(before?.fields))return message("Renseigner une adresse de projet et une commune réelles (ou utiliser le GPS).",true);
+ busy=true;let shouldDetect=false;
+ try{
+   const f=before.fields;
+   const query=addressParts.map(key=>String(f[key]||"").trim()).filter(Boolean).join(" ");
+   message("Recherche de l'adresse et de la parcelle auprès de l'IGN…");
+   const data=await json("https://data.geopf.fr/geocodage/search?q="+encodeURIComponent(query)+"&limit=1");
+   const feature=data.features?.[0],coords=feature?.geometry?.coordinates;
+   if(!Array.isArray(coords)||coords.length<2)throw Error("Adresse introuvable. Vérifier la rue et la commune.");
+   const lng=Number(coords[0]),lat=Number(coords[1]);
+   if(!Number.isFinite(lat)||!Number.isFinite(lng))throw Error("Coordonnées non valides.");
+   if(get()?.id!==studyId||addressKey(get()?.fields)!==lookupKey)return;
+   const properties=feature.properties||{},label=String(properties.label||query);
+   invalidateOldDetection();
+   mutate(st=>{
+     if(st.id!==studyId)return;
+     st.fields["parcel.lat"]=String(lat);st.fields["parcel.lng"]=String(lng);
+     if(properties.name)st.fields["parcel.address"]=String(properties.name);
+     if(properties.postcode)st.fields["parcel.postalCode"]=String(properties.postcode);
+     if(properties.city)st.fields["parcel.city"]=String(properties.city);
+     st.locationAddressKey=addressKey(st.fields);
+     st.geolocation={lat,lng,label,score:properties.score,source:"Géoplateforme IGN/BAN",at:new Date().toISOString()};
+   });
+   syncLocationFields();
+   mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
+   message("Adresse reconnue : "+label+". Recherche de la parcelle et de sa superficie…");
+   shouldDetect=true;
+ }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
+ finally{busy=false}
+ // Ne pas laisser une minuterie indépendante en cas de changement de client.
+ if(shouldDetect&&get()?.id===studyId)await detectParcel();
 }
 async function detectParcel(){
   if(busy)return;busy=true;
@@ -315,19 +322,37 @@ async function detectParcel(){
   finally{busy=false}
 }
 function gps(){
-  if(!navigator.geolocation)return message("La géolocalisation n’est pas disponible sur ce navigateur.",true);
-  message("Demande d’autorisation de localisation GPS…");
-  navigator.geolocation.getCurrentPosition(pos=>{
-    const lat=pos.coords.latitude,lng=pos.coords.longitude;
-    mutate(st=>{
-      st.fields["parcel.lat"]=String(lat);st.fields["parcel.lng"]=String(lng);
-      st.geolocation={lat,lng,label:"GPS de l’appareil",source:"GPS",at:new Date().toISOString()};
-    });
-    for(const [key,value] of [["parcel.lat",lat],["parcel.lng",lng]]){
-      const el=$('[data-path="'+key+'"]');if(el)el.value=String(value);
-    }
-    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();message("Position GPS renseignée. Vérifier le point avant de détecter la parcelle.");
-  },err=>message("GPS non disponible : "+(err.message||"Autorisation refusée"),true),{timeout:12000,enableHighAccuracy:true});
+ if(!navigator.geolocation)return message("Géolocalisation GPS indisponible sur cet appareil.",true);
+ message("Autorisation GPS requise. Le point localisé devra être vérifié sur la carte.");
+ navigator.geolocation.getCurrentPosition(async pos=>{
+   const studyId=get()?.id,lat=pos.coords.latitude,lng=pos.coords.longitude;
+   invalidateOldDetection();
+   mutate(st=>{
+     if(st.id!==studyId)return;
+     st.fields["parcel.lat"]=String(lat);st.fields["parcel.lng"]=String(lng);
+     st.geolocation={lat,lng,label:"Position GPS de l'appareil",source:"GPS",accuracy:pos.coords.accuracy,at:new Date().toISOString()};
+   });
+   // Géocodage inverse pour compléter l'adresse du projet, sans inventer de commune.
+   try{
+     const r=await json("https://data.geopf.fr/geocodage/reverse?lon="+encodeURIComponent(lng)+"&lat="+encodeURIComponent(lat));
+     const p=r.features?.[0]?.properties||{};
+     if(get()?.id!==studyId)return;
+     mutate(st=>{
+       if(st.id!==studyId)return;
+       if(p.name)st.fields["parcel.address"]=String(p.name);
+       else if(p.street)st.fields["parcel.address"]=[p.housenumber,p.street].filter(Boolean).join(" ");
+       if(p.postcode)st.fields["parcel.postalCode"]=String(p.postcode);
+       if(p.city)st.fields["parcel.city"]=String(p.city);
+       if(p.citycode&&p.citycode.length>=2)st.fields["parcel.department"]=String(p.citycode).slice(0,2);
+       st.geolocation.label=p.label||st.geolocation.label;
+       st.locationAddressKey=addressKey(st.fields);
+     });
+   }catch(err){message("GPS obtenu, mais adresse inverse indisponible. Le cadastre sera néanmoins interrogé.")}
+   syncLocationFields();
+   mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
+   if(get()?.id===studyId)await detectParcel();
+ },err=>message("GPS non disponible : "+(err.message||"Autorisation refusée"),true),
+ {timeout:12000,enableHighAccuracy:true,maximumAge:0});
 }
 function handle(event){
   const el=event.target.closest("button");if(!el)return false;
