@@ -212,8 +212,10 @@ function mount(section){
   }
   render();syncPrimaryFields();
   topLocation(section);
-  if(get()?.pendingAutoLocate&&addressReady(get()?.fields)){
-    mutate(s=>{s.pendingAutoLocate=false;});
+  const current=get();
+  if(addressReady(current?.fields)&&
+     (current?.pendingAutoLocate||(!current?.geolocation&&!current?.lastAutoLocateAttemptKey))){
+    mutate(s=>{s.pendingAutoLocate=false;s.lastAutoLocateAttemptKey=addressKey(s.fields);});
     setTimeout(()=>{if($("#dossier"))geocode();},100);
   }
 }
@@ -284,7 +286,11 @@ async function geocode(){
  if(shouldDetect&&get()?.id===studyId)await detectParcel();
 }
 async function detectParcel(){
-  if(busy)return;busy=true;
+  if(busy)return message("Une recherche est déjà en cours.",true);
+  const fields=get()?.fields||{};
+  const lat=num(fields["parcel.lat"]),lng=num(fields["parcel.lng"]);
+  if((lat===null||lng===null)&&addressReady(fields))return geocode();
+  busy=true;
   try{
     const f=path=>$('[data-path="'+path+'"]')?.value||"";
     const lat=num(f("parcel.lat")),lng=num(f("parcel.lng"));
