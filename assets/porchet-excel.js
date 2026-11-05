@@ -141,7 +141,7 @@ function shell(book,key){
  const rowTimes=demo?TIMES:(Array.isArray(s.times)?s.times:TIMES);
  const inputs=rowTimes.map((t,i)=>{
    const out=r.rows[i];
-   return '<tr class="'+(i===0?"px-initial":"")+'"><td class="px-time">'+t+'</td>'+
+   return '<tr class="'+(i===0?"px-initial":"")+'"><td class="px-time"><input type="number" min="0" step="0.1" class="px-time-input" data-px-time="'+i+'" value="'+esc(t)+'" '+(demo?'readonly':'')+' aria-label="Temps relevé '+(i+1)+' (minutes)"></td>'+
      '<td><input aria-label="Graduation à '+t+' minute'+(t>1?"s":"")+'" class="px-input '+(demo?"px-readonly":"px-edit")+
      '" type="text" inputmode="decimal" data-px-grad="'+i+'" value="'+esc(s.graduations?.[i]||"")+'" '+(demo?"readonly":"")+'></td>'+
      '<td>'+format(out.volume,3)+'</td><td>'+format(out.k,3)+'</td><td>'+fmtTiny(out.ms)+'</td></tr>';
@@ -171,7 +171,7 @@ function shell(book,key){
    '</div></div>'+
    '<div class="px-group"><h2>Relevés de graduation</h2>'+
    '<div class="px-table-scroll"><table class="px-table"><thead><tr><th>T (min)</th><th>Graduation</th><th>V (ml)</th><th>K (mm/h)</th><th>K (m/s)</th></tr></thead><tbody>'+inputs+
-   '<tr class="px-total"><th colspan="3">Retenu (moyenne des K)</th><td data-px-mean>'+format(r.mean,3)+'</td><td>'+fmtTiny(r.meanMs)+'</td></tr></tbody></table></div></div>'+
+   '<tr class="px-total"><th colspan="3">Retenu (moyenne des K)</th><td data-px-mean>'+format(r.mean,3)+'</td><td>'+fmtTiny(r.meanMs)+'</td></tr></tbody></table></div>'+(demo?'':'<button type="button" class="btn secondary" data-px-add="1">+ Ajouter un relevé</button><button type="button" class="btn secondary" data-px-remove="1">Supprimer le dernier relevé</button><p class="small-text">Temps modifiables. Les relevés à 0 min ne produisent pas de division par zéro.</p>')+'</div>'+
    '<div class="px-secondary">'+
      field("soil","Nature du sol",s.soil,{wide:true,readonly:demo})+
      field("calibration","Graduation de 1 mm = … ml",s.calibration,{numeric:true,readonly:demo})+
