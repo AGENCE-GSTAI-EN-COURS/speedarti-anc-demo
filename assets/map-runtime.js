@@ -1,7 +1,7 @@
 /* ANC public — cartographie réellement interactive, aucune formule ANC privée. */
 (()=>{
 "use strict";
-let map=null, marker=null,parcelLayer=null, activeSection=null, activeStudyId=null, mapLayers={};
+let map=null, marker=null,parcelLayer=null, activeSection=null, activeStudyId=null, mapLayers={}, pickerMode=false, pickerMarker=null;
 const assetBase=new URL(".",document.currentScript?.src||location.href).href;
 const $=q=>document.querySelector(q);
 const study=()=>window.ANCRealWorkflow?.getStudy?.();
@@ -18,7 +18,7 @@ const status=(message,warning=false)=>{
 };
 function destroy(){
  if(map){try{map.remove()}catch(e){console.warn(e)}}
- map=null;marker=null;parcelLayer=null;mapLayers={};
+ map=null;marker=null;parcelLayer=null;pickerMarker=null;pickerMode=false;mapLayers={};
 }
 function loadLeaflet(){
  if(window.L?.map)return Promise.resolve(true);
@@ -44,7 +44,7 @@ function mount(section){
  }
  if(!target)return;
  target.classList.add("anc-real-map-target");
- target.innerHTML='<p id="anc-live-map-status" role="status">Chargement de la carte…</p><div class="anc-map-canvas" role="application" aria-label="Carte interactive du dossier"></div>';
+ target.innerHTML='<p id="anc-live-map-status" role="status">Chargement de la carte…</p><button type="button" class="btn secondary" data-anc-map-pick="1" aria-pressed="false">📍 Déplacer le point / choisir une autre parcelle</button><p class="anc-map-pick-help">Une adresse peut pointer sur la rue ou la mauvaise parcelle. Activez ce bouton puis cliquez sur le terrain concerné (ou déplacez le repère).</p><div class="anc-map-canvas" role="application" aria-label="Carte interactive du dossier"></div><div class="anc-map-selection-panel" aria-live="polite"></div>';
  const canvas=target.querySelector(".anc-map-canvas");
  const mountedSection=section.id;
  loadLeaflet().then(ok=>{
@@ -53,6 +53,10 @@ function mount(section){
    const coords=coordinates();
    const center=coords||[46.6,2.3];
    map=L.map(canvas,{zoomControl:true,scrollWheelZoom:false}).setView(center,coords?18:6);
+   map.on("click",e=>{
+     if(!pickerMode)return;
+     previewPoint(e.latlng.lat,e.latlng.lng);
+   });
    const osm=L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
      maxZoom:19,attribution:"© OpenStreetMap contributors"
    }).addTo(map);
@@ -68,9 +72,11 @@ function mount(section){
      layers:"SCAN_D_GEOL50",format:"image/png",transparent:true,version:"1.1.1",attribution:"BRGM — carte géologique 1:50 000",maxZoom:18
    });
    mapLayers={osm,ortho,cadastre,geology};
-   L.control.layers({"OpenStreetMap":osm,"Orthophoto IGN":ortho},{"Cadastre IGN":cadastre,"Carte géologique BRGM":geology},{collapsed:false}).addTo(map);
+   L.control.layers({"OpenStreetMap":osm,"Orthophoto IGN":ortho},{"Cadastre IGN":cadastre,"Carte géologique BRGM":geology},{collapsed:true}).addTo(map);
    for(const layer of [osm,ortho,cadastre,geology])layer.on("tileerror",()=>status("Une couche cartographique ne répond pas. Essayer un autre fond ou vérifier la connexion.",true));
-   if(coords){marker=L.marker(coords).addTo(map).bindPopup("Position du chantier — à confirmer");status("Carte centrée sur le dossier. Détection cadastrale à confirmer.");}
+   if(coords){marker=L.marker(coords,{draggable:false}).addTo(map).bindPopup("Position du chantier — à confirmer");
+     marker.on("dragend",()=>{if(pickerMode){const p=marker.getLatLng();previewPoint(p.lat,p.lng);}});
+     status("Carte centrée sur le dossier. Une adresse peut localiser la rue, pas la parcelle : utilisez « Déplacer le point » pour vérifier.");}
    if(study()?.cadastralGeometry)showParcel(study().cadastralGeometry);
    else status("Carte active. Renseignez une adresse réelle puis cliquez sur « Localiser depuis l’adresse ».");
    setTimeout(()=>{if(map)map.invalidateSize()},100);
@@ -80,7 +86,10 @@ function refresh(){
  const coords=coordinates();if(!map||!coords)return;
  map.setView(coords,18);
  if(marker)marker.setLatLng(coords);
- else marker=L.marker(coords).addTo(map).bindPopup("Position du chantier — à confirmer");
+ else {
+   marker=L.marker(coords,{draggable:pickerMode}).addTo(map).bindPopup("Position du chantier — à confirmer");
+   marker.on("dragend",()=>{if(pickerMode){const p=marker.getLatLng();previewPoint(p.lat,p.lng);}});
+ }
  status("Position mise à jour : "+coords[0].toFixed(5)+", "+coords[1].toFixed(5)+".");
 }
 function showParcel(geojson){
@@ -91,6 +100,39 @@ function showParcel(geojson){
    const bounds=parcelLayer.getBounds();if(bounds.isValid())map.fitBounds(bounds.pad(.2));
    status("Contour cadastral IGN affiché — à confirmer sur le terrain.");
  }catch(err){status("La parcelle a été détectée, mais son contour ne peut pas être affiché.",true);}
+}
+function previewPoint(lat,lng){
+ if(!map||!pickerMode)return;
+ if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
+ if(pickerMarker)map.removeLayer(pickerMarker);
+ pickerMarker=L.circleMarker([lat,lng],{radius:8,color:"#dc6418",weight:3,fillOpacity:.35}).addTo(map);
+ status("Recherche des parcelles au point choisi : "+lat.toFixed(6)+", "+lng.toFixed(6)+". Confirmez ensuite la référence cadastrale.");
+ const panel=document.querySelector(".anc-map-selection-panel");
+ if(panel)panel.textContent="Interrogation du cadastre IGN au point choisi…";
+ window.ANCGeoParcel?.proposeMapPoint?.(lat,lng);
+}
+function enableParcelPicker(on){
+ if(!map)return false;
+ pickerMode=!!on;
+ const button=document.querySelector('[data-anc-map-pick]');
+ if(button){button.setAttribute("aria-pressed",String(pickerMode));button.textContent=pickerMode?"Annuler la sélection de parcelle":"📍 Déplacer le point / choisir une autre parcelle";}
+ if(marker?.dragging){if(pickerMode)marker.dragging.enable();else marker.dragging.disable();}
+ map.getContainer().style.cursor=pickerMode?"crosshair":"";
+ if(!pickerMode){
+   if(pickerMarker)map.removeLayer(pickerMarker);
+   pickerMarker=null;
+   const panel=document.querySelector(".anc-map-selection-panel");if(panel)panel.replaceChildren();
+ }
+ status(pickerMode?"Cliquez sur la parcelle désirée ou déplacez le repère, puis confirmez la référence proposée. Rien ne change avant confirmation.":"Sélection annulée : la parcelle enregistrée est conservée.");
+ return true;
+}
+function finishParcelPick(){
+ if(!map)return;
+ enableParcelPicker(false);
+}
+function clearParcel(){
+ if(map&&parcelLayer)map.removeLayer(parcelLayer);
+ parcelLayer=null;
 }
 function selectView(view){
  if(!map)return false;
@@ -105,6 +147,8 @@ function selectView(view){
  return true;
 }
 function handle(event){
+ const pick=event.target.closest("[data-anc-map-pick]");
+ if(pick){enableParcelPicker(!pickerMode);return true;}
  const view=event.target.closest("[data-anc-map-view]");
  if(view){selectView(view.dataset.ancMapView);return true;}
  const save=event.target.closest("[data-anc-map-save]");
@@ -128,5 +172,5 @@ function handle(event){
  }
  return false;
 }
-window.ANCMapRuntime={mount,refresh,showParcel,selectView,handle};
+window.ANCMapRuntime={mount,refresh,showParcel,selectView,handle,clearParcel,finishParcelPick};
 })();
