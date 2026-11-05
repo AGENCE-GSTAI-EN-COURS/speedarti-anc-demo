@@ -2,6 +2,7 @@
 (()=>{
 "use strict";
 let map=null, marker=null,parcelLayer=null, activeSection=null, activeStudyId=null;
+const assetBase=new URL(".",document.currentScript?.src||location.href).href;
 const $=q=>document.querySelector(q);
 const study=()=>window.ANCRealWorkflow?.getStudy?.();
 const numerical=x=>{if(x===null||x===undefined||x==="")return null;const n=Number(x);return Number.isFinite(n)?n:null};
@@ -23,8 +24,8 @@ function loadLeaflet(){
  if(window.L?.map)return Promise.resolve(true);
  if(window.__ancLeafletPromise)return window.__ancLeafletPromise;
  window.__ancLeafletPromise=new Promise(resolve=>{
-   const css=document.createElement("link");css.rel="stylesheet";css.href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";document.head.appendChild(css);
-   const script=document.createElement("script");script.src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";script.onload=()=>resolve(!!window.L?.map);script.onerror=()=>resolve(false);document.head.appendChild(script);
+   const css=document.createElement("link");css.rel="stylesheet";css.href=assetBase+"leaflet.css";document.head.appendChild(css);
+   const script=document.createElement("script");script.src=assetBase+"leaflet.js";script.onload=()=>resolve(!!window.L?.map);script.onerror=()=>resolve(false);document.head.appendChild(script);
  });
  return window.__ancLeafletPromise;
 }
