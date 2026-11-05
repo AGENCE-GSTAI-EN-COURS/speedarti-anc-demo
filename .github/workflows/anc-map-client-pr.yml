@@ -1,0 +1,32 @@
+name: ANC demo — carte et clients (PR sans déploiement)
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Syntaxe JavaScript
+        run: |
+          node --check assets/public.js
+          node --check assets/live-workflow.js
+          node --check assets/geo-parcel.js
+          node --check assets/map-runtime.js
+      - name: Installer les tests
+        run: npm install --no-audit --no-fund
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Recette desktop et mobile
+        run: npm run test:e2e
+      - name: Vérification publique sans code privé
+        run: |
+          for dir in domain application repositories adapters integrations knowledge migration migrations tests e2e v3; do
+            if [ -e "$dir" ]; then echo "Forbidden directory: $dir"; exit 1; fi
+          done
