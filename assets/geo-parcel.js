@@ -59,7 +59,27 @@ function updateTotals(){
   mutate(s=>{
     s.fields=s.fields||{};
     s.fields["parcel.totalArea"]=known.length?String(total):"";
+    const first=s.parcels?.find(p=>p.status==="AUTO_DETECTED")||s.parcels?.find(p=>p.section&&p.number);
+    if(first){s.fields["parcel.section"]=String(first.section||"");s.fields["parcel.number"]=String(first.number||"");s.fields["parcel.area"]=num(first.area)===null?"":String(first.area);}
   });
+  syncPrimaryFields();
+}
+function syncPrimaryFields(){
+  const s=get(),f=s?.fields||{},parcels=s?.parcels||[];
+  const selected=parcels.find(p=>p.status==="AUTO_DETECTED")||parcels.find(p=>p.section&&p.number);
+  for(const [key,value] of [
+    ["parcel.section",selected?.section??f["parcel.section"]??""],
+    ["parcel.number",selected?.number??f["parcel.number"]??""],
+    ["parcel.area",selected?.area??f["parcel.area"]??""],
+    ["parcel.totalArea",f["parcel.totalArea"]??""]
+  ]){
+    const el=$('[data-path="'+key+'"]');if(el)el.value=String(value);
+  }
+  const meta=$(".geo-meta");
+  if(meta){
+    const spans=$("span",meta);
+    if(spans[3])spans[3].textContent=parcels.filter(p=>p.section&&p.number).map(p=>p.section+" "+p.number).join(", ")||"Non détectée";
+  }
 }
 function render(){
   const list=$("#anc-v3-parcel-list");if(!list)return;
@@ -104,7 +124,7 @@ function mount(section){
     if(labels[2])labels[2].textContent=loc?.score!==undefined?Math.round(Number(loc.score)*100)+" % — à vérifier":"Non vérifiée";
     if(labels[3])labels[3].textContent=st?.parcels?.map(p=>p.section&&p.number?p.section+" "+p.number:"").filter(Boolean).join(", ")||"Non détectée";
   }
-  render();
+  render();syncPrimaryFields();
 }
 function addParcel(){
   mutate(st=>{st.parcels=st.parcels||[];st.parcels.push(create());});
@@ -186,15 +206,16 @@ async function detectParcel(){
       st.parcels=Array.isArray(st.parcels)?st.parcels:[];
       const exists=st.parcels.find(x=>x.section===section&&x.number===number&&section&&number);
       if(exists){
-        if(num(exists.area)===null)exists.area=entry.area;
+        exists.area=entry.area;
         exists.source=src;exists.status="AUTO_DETECTED";
       }else if(st.parcels.length===1&&((st.geolocation?.source==="Géoplateforme IGN/BAN"&&String(st.parcels[0].source||"").startsWith("Exemple du dossier"))||(st.parcels[0].area===""&&!st.parcels[0].number)))
         st.parcels[0]=entry;
       else st.parcels.push(entry);
       st.fields["parcel.section"]=section;st.fields["parcel.number"]=number;
+      st.fields["parcel.area"]=area.area===null?"":String(area.area);
       st.cadastralGeometry=ftr.geometry||null;
     });
-    render();window.ANCMapRuntime?.showParcel?.(ftr);
+    render();syncPrimaryFields();window.ANCMapRuntime?.showParcel?.(ftr);
     for(const [path,value] of [["parcel.section",section],["parcel.number",number]]){
       const el=$('[data-path="'+path+'"]');if(el)el.value=value;
     }
