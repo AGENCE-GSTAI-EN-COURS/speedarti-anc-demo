@@ -158,7 +158,7 @@ async function geocode(){
     });
     const a=$('[data-path="parcel.lat"]'),b=$('[data-path="parcel.lng"]');
     if(a)a.value=String(lat);if(b)b.value=String(lng);
-    mount($("#dossier"));
+    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
     message("Adresse reconnue : "+label+" — latitude "+lat.toFixed(5)+", longitude "+lng.toFixed(5)+". Vérification nécessaire.");
   }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
   finally{busy=false;}
@@ -192,7 +192,7 @@ async function detectParcel(){
       else st.parcels.push(entry);
       st.fields["parcel.section"]=section;st.fields["parcel.number"]=number;
     });
-    render();
+    render();window.ANCMapRuntime?.showParcel?.(ftr);
     for(const [path,value] of [["parcel.section",section],["parcel.number",number]]){
       const el=$('[data-path="'+path+'"]');if(el)el.value=value;
     }
@@ -212,7 +212,7 @@ function gps(){
     for(const [key,value] of [["parcel.lat",lat],["parcel.lng",lng]]){
       const el=$('[data-path="'+key+'"]');if(el)el.value=String(value);
     }
-    mount($("#dossier"));message("Position GPS renseignée. Vérifier le point avant de détecter la parcelle.");
+    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();message("Position GPS renseignée. Vérifier le point avant de détecter la parcelle.");
   },err=>message("GPS non disponible : "+(err.message||"Autorisation refusée"),true),{timeout:12000,enableHighAccuracy:true});
 }
 function handle(event){
