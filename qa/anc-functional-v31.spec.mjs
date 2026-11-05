@@ -54,3 +54,17 @@ test("Cartes dossier : vues absentes ne sont pas présentées comme validées",a
  await expect(page.locator("#anc-live-map-gallery")).toContainText("Aucune carte enregistrée");
  await expect(page.locator("#cartes .map-card:visible")).toHaveCount(0);
 });
+
+test("Plans & métrés : une vue sélectionnée apparaît dans les cartes du dossier",async({page})=>{
+ await page.goto("/#dossier");
+ await page.locator('[data-path="parcel.lat"]').fill("44.02");
+ await page.locator('[data-path="parcel.lng"]').fill("1.35");
+ await page.locator('#public-tabs [data-tab="geometrie"]').click();
+ await expect(page.locator(".anc-real-map-card .leaflet-container")).toBeVisible({timeout:20000});
+ await page.locator('[data-anc-map-view="cadastre"]').click();
+ await page.locator('[data-anc-map-save]').click();
+ await page.locator('#public-tabs [data-tab="cartes"]').click();
+ await expect(page.locator("#anc-live-map-gallery")).toContainText("Plan cadastral");
+ await page.reload();
+ await expect(page.locator("#anc-live-map-gallery")).toContainText("Plan cadastral");
+});
