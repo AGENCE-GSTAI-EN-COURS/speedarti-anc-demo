@@ -190,7 +190,23 @@ function mount(section){
 }
 function refreshFromCoordinates(){
  updateDisplay();
+ const initial=study(),p=point();
+ if(!initial||!p)return;
+ const id=initial.id,key=pointKey(p);
+ // Un géocodage peut être suivi presque immédiatement d'une recherche cadastrale.
+ // Si le premier appel d'altimétrie ne finit pas par renseigner l'étude, permettre
+ // UNE seule nouvelle tentative pour ce dossier et ce point, sans écraser les saisies.
  void elevation();
+ if(initial.altitudeRecoveryKey===key)return;
+ setTimeout(()=>{
+   const current=study();
+   if(current?.id!==id||pointKey(point())!==key)return;
+   if(String(current.fields?.["parcel.altitude"]??"").trim()!=="")return;
+   if(current.terrainSources?.altitude?.origin==="manual")return;
+   if(current.altitudeRecoveryKey===key)return;
+   mutate(st=>{if(st.id===id)st.altitudeRecoveryKey=key;});
+   void elevation({force:true});
+ },1200);
 }
 document.addEventListener("click",event=>{
  const button=event.target.closest("[data-anc-terrain-action]");

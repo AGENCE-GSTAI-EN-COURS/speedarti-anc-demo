@@ -48,6 +48,7 @@ function invalidateOldDetection(){
    // Invalider uniquement les enrichissements dépendant du point et de la parcelle.
    st.fields["parcel.altitude"]="";
    st.altitudeAttemptPoint="";
+   st.altitudeRecoveryKey="";
    if(st.terrainSources){
      delete st.terrainSources.altitude;
      if(st.terrainSources.availableArea?.origin==="estimate"){
