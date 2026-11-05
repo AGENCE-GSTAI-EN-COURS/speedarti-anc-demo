@@ -23,8 +23,8 @@ function updateDisplay(){
  const coords=$("#anc-coordinates-readable");
  if(coords){
    const lat=$("#anc-coord-lat"),lon=$("#anc-coord-lon");
-   if(lat)lat.textContent=p?p.lat.toFixed(7)+"° N/S":"À localiser";
-   if(lon)lon.textContent=p?p.lon.toFixed(7)+"° E/O":"À localiser";
+   if(lat)lat.textContent=p?Math.abs(p.lat).toFixed(7)+"° "+(p.lat>=0?"N":"S"):"À localiser";
+   if(lon)lon.textContent=p?Math.abs(p.lon).toFixed(7)+"° "+(p.lon>=0?"E":"O"):"À localiser";
    const origin=$("#anc-coord-origin");
    if(origin)origin.textContent=s?.geolocation?.source||"Non localisé";
  }
