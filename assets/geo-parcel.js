@@ -351,7 +351,8 @@ function confirmMapSelection(){
    st.userSelectedParcel={section,number,lat,lng,selectedAt:new Date().toISOString(),source:"API Carto IGN"};
  });
  pendingParcelSelection=null;++pendingParcelRequest;
- syncLocationFields();render();syncPrimaryFields();topLocation(document.querySelector("#dossier"));
+ syncLocationFields();render();syncPrimaryFields();
+ const dossier=document.querySelector("#dossier");if(dossier)topLocation(dossier);
  window.ANCMapRuntime?.refresh?.();
  window.ANCMapRuntime?.showParcel?.(feature);
  window.ANCMapRuntime?.finishParcelPick?.();
