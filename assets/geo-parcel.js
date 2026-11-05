@@ -43,6 +43,18 @@ function invalidateOldDetection(){
    st.fields["parcel.lng"]="";
    st.fields["parcel.area"]="";
    st.fields["parcel.totalArea"]="";
+   // Invalider uniquement les enrichissements dépendant du point et de la parcelle.
+   st.fields["parcel.altitude"]="";
+   st.altitudeAttemptPoint="";
+   if(st.terrainSources){
+     delete st.terrainSources.altitude;
+     if(st.terrainSources.availableArea?.origin==="estimate"){
+       st.fields["parcel.availableArea"]="";
+       st.fields["parcel.occupiedArea"]="";
+       st.fields["parcel.excludedArea"]="";
+       delete st.terrainSources.availableArea;
+     }
+   }
    const first=st.parcels.find(p=>p.section&&p.number);
    st.fields["parcel.section"]=first?.section||"";
    st.fields["parcel.number"]=first?.number||"";
@@ -141,6 +153,7 @@ function updateTotals(){
     if(first){s.fields["parcel.section"]=String(first.section||"");s.fields["parcel.number"]=String(first.number||"");s.fields["parcel.area"]=num(first.area)===null?"":String(first.area);}
   });
   syncPrimaryFields();
+  window.ANCTerrainEnrichment?.updateDisplay?.();
   const note=$("#anc-parcel-surface-source");
   const first=fresh.find(p=>p.status==="AUTO_DETECTED")||fresh.find(p=>p.area!==""&&p.section&&p.number);
   if(note)note.textContent=first?.source||"Surface non déterminée : cliquer sur Détecter la parcelle ou saisir une mesure vérifiée.";
@@ -278,6 +291,7 @@ async function geocode(){
    });
    syncLocationFields();
    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
+   window.ANCTerrainEnrichment?.refreshFromCoordinates?.();
    message("Adresse reconnue : "+label+". Recherche de la parcelle et de sa superficie…");
    shouldDetect=true;
  }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
@@ -321,6 +335,7 @@ async function detectParcel(){
       st.cadastralGeometry=ftr.geometry||null;
     });
     render();syncPrimaryFields();window.ANCMapRuntime?.showParcel?.(ftr);
+    window.ANCTerrainEnrichment?.refreshFromCoordinates?.();
     for(const [path,value] of [["parcel.section",section],["parcel.number",number]]){
       const el=$('[data-path="'+path+'"]');if(el)el.value=value;
     }

@@ -66,7 +66,7 @@
         const mounted=viewport.querySelector("section");
         try {window.ANCDemoEngine?.addHorizonButtons?.(mounted);}
         catch(err){console.error("ANC demo horizons",slug,err);}
-        try {window.ANCRealWorkflow?.mount?.(mounted,slug);window.ANCGeoParcel?.mount?.(mounted);window.ANCRealControls?.mount?.(mounted);window.ANCFieldSources?.mount?.(mounted);window.ANCMapGallery?.mount?.(mounted);window.ANCMapRuntime?.mount?.(mounted);}
+        try {window.ANCRealWorkflow?.mount?.(mounted,slug);window.ANCGeoParcel?.mount?.(mounted);window.ANCTerrainEnrichment?.mount?.(mounted);window.ANCRealControls?.mount?.(mounted);window.ANCFieldSources?.mount?.(mounted);window.ANCMapGallery?.mount?.(mounted);window.ANCMapRuntime?.mount?.(mounted);}
         catch(err){
           console.error("ANC demo real workflow mount",slug,err);
           window.__ancMountError={page:slug,message:String(err?.message||err)};
