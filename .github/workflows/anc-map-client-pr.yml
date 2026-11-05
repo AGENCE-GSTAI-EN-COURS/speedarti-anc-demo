@@ -18,6 +18,7 @@ jobs:
           node --check assets/public.js
           node --check assets/live-workflow.js
           node --check assets/geo-parcel.js
+          node --check assets/terrain-enrichment.js
           node --check assets/map-runtime.js
       - name: Installer les tests
         run: npm install --no-audit --no-fund
