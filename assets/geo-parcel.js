@@ -159,7 +159,8 @@ async function geocode(){
     const a=$('[data-path="parcel.lat"]'),b=$('[data-path="parcel.lng"]');
     if(a)a.value=String(lat);if(b)b.value=String(lng);
     mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
-    message("Adresse reconnue : "+label+" — latitude "+lat.toFixed(5)+", longitude "+lng.toFixed(5)+". Vérification nécessaire.");
+    message("Adresse reconnue : "+label+" — latitude "+lat.toFixed(5)+", longitude "+lng.toFixed(5)+". Recherche automatique de parcelle…");
+    setTimeout(()=>detectParcel(),250);
   }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
   finally{busy=false;}
 }
@@ -191,6 +192,7 @@ async function detectParcel(){
         st.parcels[0]=entry;
       else st.parcels.push(entry);
       st.fields["parcel.section"]=section;st.fields["parcel.number"]=number;
+      st.cadastralGeometry=ftr.geometry||null;
     });
     render();window.ANCMapRuntime?.showParcel?.(ftr);
     for(const [path,value] of [["parcel.section",section],["parcel.number",number]]){
@@ -228,7 +230,15 @@ document.addEventListener("input",event=>{
   const el=event.target;
   if(el.matches("[data-parcel-field]"))editParcel(el);
 },true);
+let autoLocateTimer;
 document.addEventListener("change",event=>{
+  if(["parcel.address","parcel.postalCode","parcel.city"].includes(event.target?.dataset?.path)){
+    clearTimeout(autoLocateTimer);
+    autoLocateTimer=setTimeout(()=>{
+      const q=["parcel.address","parcel.postalCode","parcel.city"].map(p=>document.querySelector('[data-path="'+p+'"]')?.value?.trim()||"");
+      if(q.every(Boolean)&&!q.some(v=>/d[ée]mo|d[ée]monstration|exemple/i.test(v)))geocode();
+    },700);
+  }
   const el=event.target;if(el.matches("[data-parcel-field]"))editParcel(el);
 },true);
 window.ANCGeoParcel={mount,handle,geometryArea};
