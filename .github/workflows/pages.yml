@@ -31,6 +31,7 @@ jobs:
           node --check assets/geo-parcel.js
           node --check assets/live-controls.js
           node --check assets/map-runtime.js
+          node --check assets/field-sources.js
       - name: Install public demo test tools
         run: npm install --no-audit --no-fund
       - name: Install Chromium
@@ -60,7 +61,7 @@ jobs:
         run: |
           mkdir -p site/assets site/assets/images site/sections
           cp index.html site/
-          cp assets/original.css assets/public.css assets/public.js assets/demo-engine.js assets/porchet-excel.js assets/porchet-excel.css assets/live-workflow.js assets/geo-parcel.js assets/live-controls.js assets/map-runtime.js assets/leaflet.js assets/leaflet.css site/assets/
+          cp assets/original.css assets/public.css assets/public.js assets/demo-engine.js assets/porchet-excel.js assets/porchet-excel.css assets/live-workflow.js assets/geo-parcel.js assets/live-controls.js assets/map-runtime.js assets/field-sources.js assets/leaflet.js assets/leaflet.css site/assets/
           cp assets/images/* site/assets/images/
           cp sections/*.html site/sections/
           touch site/.nojekyll
