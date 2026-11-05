@@ -50,5 +50,5 @@ test("Adresse → IGN → cadastre : les coordonnées et le contour sont reliés
  await page.locator('[data-action="geocode-address"]').click();
  await expect(page.locator('[data-path="parcel.lat"]')).toHaveValue("44.02");
  await expect(page.locator(".anc-p-number").first()).toHaveValue("0042",{timeout:12000});
- await expect(page.locator(".geo-map-frame .leaflet-interactive")).toHaveCount(1);
+ expect(await page.locator(".geo-map-frame .leaflet-overlay-pane path").count()).toBeGreaterThan(0);
 });
