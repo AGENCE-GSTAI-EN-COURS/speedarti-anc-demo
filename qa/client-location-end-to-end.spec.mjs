@@ -94,3 +94,15 @@ test("Client sans adresse n'hérite jamais de la surface ou de la géologie du s
  await expect(page.locator('[data-path="parcel.geologyText"]')).toHaveValue("");
  await expect(page.locator("#anc-location-chain-status")).toContainText("Compléter l'adresse");
 });
+
+test("Bouton Détecter la parcelle sans coordonnées : déclenche d'abord l'adresse IGN",async({page})=>{
+ await mockOfficialServices(page);
+ await page.goto("/#dossier");
+ await page.locator('#anc-dossier-client-actions [data-live-action="new-study"]').click();
+ await page.locator('[data-location-entry="parcel.address"]').fill("8 rue des Tilleuls");
+ await page.locator('[data-location-entry="parcel.postalCode"]').fill("82000");
+ await page.locator('[data-location-entry="parcel.city"]').fill("Montauban");
+ await page.locator('[data-action="detect-parcel"]').click();
+ await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1564",{timeout:15000});
+ await expect(page.locator('[data-path="parcel.number"]')).toHaveValue("0071");
+});
