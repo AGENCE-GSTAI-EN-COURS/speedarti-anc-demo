@@ -16,6 +16,67 @@ const num=x=>{
  return Number.isFinite(parsed)?parsed:null;
 };
 let busy=false;
+let autoLocateTimer=null;
+const addressParts=["parcel.address","parcel.postalCode","parcel.city"];
+const addressKey=f=>addressParts.map(key=>String(f?.[key]||"").trim().toLocaleLowerCase("fr-FR")).join("|");
+function addressReady(f){
+ const addr=String(f?.["parcel.address"]||"").trim(),city=String(f?.["parcel.city"]||"").trim();
+ return addr.length>=4&&city.length>=2&&!/d[ée]mo|d[ée]monstration|exemple|commune test/i.test(addr+" "+city);
+}
+function syncLocationFields(){
+ const fields=get()?.fields||{};
+ for(const key of addressParts){
+   const value=String(fields[key]||"");
+   const field=$('[data-path="'+key+'"]');if(field&&field.value!==value)field.value=value;
+   const edit=$('[data-location-entry="'+key+'"]');if(edit&&edit.value!==value)edit.value=value;
+ }
+ for(const key of ["parcel.lat","parcel.lng"]){
+   const field=$('[data-path="'+key+'"]');if(field)field.value=String(fields[key]||"");
+ }
+}
+function invalidateOldDetection(){
+ mutate(st=>{
+   st.parcels=(st.parcels||[]).filter(p=>p.status!=="AUTO_DETECTED");
+   st.geolocation=null;
+   st.cadastralGeometry=null;
+   st.fields["parcel.lat"]="";
+   st.fields["parcel.lng"]="";
+   st.fields["parcel.area"]="";
+   st.fields["parcel.totalArea"]="";
+   const first=st.parcels.find(p=>p.section&&p.number);
+   st.fields["parcel.section"]=first?.section||"";
+   st.fields["parcel.number"]=first?.number||"";
+ });
+ window.ANCMapRuntime?.clearParcel?.();
+ render();
+}
+function topLocation(section){
+ const location=$(".geo-location-card",section)?.closest("article");
+ if(!location)return;
+ // La recherche d'adresse précède désormais l'identification du dossier.
+ section.querySelector(".section-head")?.insertAdjacentElement("afterend",location);
+ let form=$("#anc-location-entry",location);
+ if(!form){
+   form=document.createElement("div");form.id="anc-location-entry";
+   form.className="grid g3";
+   form.style.cssText="padding:12px 0;gap:12px";
+   const labels=[["parcel.address","Adresse du projet"],["parcel.postalCode","Code postal"],["parcel.city","Commune"]];
+   form.innerHTML=labels.map(([key,label])=>'<label class="field"><strong>'+esc(label)+'</strong><input type="text" class="input" data-location-entry="'+key+'" autocomplete="off" placeholder="'+esc(label)+'"></label>').join("");
+   location.querySelector(".geo-location-main")?.insertBefore(form,location.querySelector(".geo-status-row"));
+ }
+ syncLocationFields();
+ let status=$("#anc-location-chain-status",location);
+ if(!status){
+   status=document.createElement("p");status.id="anc-location-chain-status";status.className="anc-source-note";
+   form.insertAdjacentElement("afterend",status);
+ }
+ const st=get();
+ status.textContent=st?.geolocation?.source?
+   "Localisation enregistrée ("+st.geolocation.source+"). Section et surface cadastrales ci-dessous, à confirmer.":
+   addressReady(st?.fields)?"Adresse prête : localisation IGN puis recherche cadastrale automatique.":
+   "Compléter l'adresse et la commune, ou utiliser le GPS. La section et la surface se rempliront après détection.";
+}
+
 function message(m,error=false){
   let el=$("#anc-parcel-feedback");
   if(!el&&$("#anc-v3-parcels")){
@@ -150,6 +211,11 @@ function mount(section){
     if(labels[3])labels[3].textContent=st?.parcels?.map(p=>p.section&&p.number?p.section+" "+p.number:"").filter(Boolean).join(", ")||"Non détectée";
   }
   render();syncPrimaryFields();
+  topLocation(section);
+  if(get()?.pendingAutoLocate&&addressReady(get()?.fields)){
+    mutate(s=>{s.pendingAutoLocate=false;});
+    setTimeout(()=>{if($("#dossier"))geocode();},100);
+  }
 }
 function addParcel(){
   mutate(st=>{st.parcels=st.parcels||[];st.parcels.push(create());});
