@@ -330,7 +330,7 @@
       }
       const db=read(),st=current(db);
       if(st&&st.isNew&&!Object.keys(st.fields).length){
-        for(const el of $("[data-path]",section)){
+        for(const el of $$("[data-path]",section)){
           if(el.matches("input:not([type=hidden]),textarea"))el.value="";
           if(el.matches("select"))el.selectedIndex=0;
         }
@@ -472,7 +472,7 @@
     if(cmd==="save-dossier-client"){
       const form=$("#anc-dossier-client-form"),data={};
       if(!form)return true;
-      for(const input of $("[data-dossier-client]",form))data[input.dataset.dossierClient]=input.value.trim();
+      for(const input of $$("[data-dossier-client]",form))data[input.dataset.dossierClient]=input.value.trim();
       if(!data.lastName){notice("Renseigner le nom du client.");return true;}
       data.id=id();
       const db=read(),st=current(db);
