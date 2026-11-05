@@ -158,7 +158,7 @@ function syncPrimaryFields(){
   }
   const meta=$(".geo-meta");
   if(meta){
-    const spans=$("span",meta);
+    const spans=meta.querySelectorAll("span");
     if(spans[3])spans[3].textContent=parcels.filter(p=>p.section&&p.number).map(p=>p.section+" "+p.number).join(", ")||"Non détectée";
   }
 }
