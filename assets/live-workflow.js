@@ -223,7 +223,7 @@
     if(!client)return notice("Client introuvable dans le répertoire local."),false;
     let st=current(db);
     // An existing dossier belongs to another client: never reuse its former parcels or reports.
-    if(!st||(!reuseCurrent&&(st.clientId!==client.id||st.name==="Étude ANC — exemple"))){
+    if(!st||(st.clientId&&st.clientId!==client.id)||(!reuseCurrent&&(st.clientId!==client.id||st.name==="Étude ANC — exemple"))){
       st=fresh();db.studies.push(st);db.activeId=st.id;
     }
     applyClient(st,client);
@@ -402,7 +402,7 @@
         h.insertAdjacentElement("afterend",controls);
         const form=document.createElement("div");form.id="anc-dossier-client-form";form.className="card";
         form.hidden=true;
-        form.innerHTML='<div class="card-body"><h3>Créer et affecter un client</h3><div class="grid g3"><label>Prénom<input class="input" data-dossier-client="firstName"></label><label>Nom *<input class="input" data-dossier-client="lastName"></label><label>Commune<input class="input" data-dossier-client="city"></label></div><button type="button" class="btn primary" data-live-action="save-dossier-client">Créer et utiliser ce client</button></div>';
+        form.innerHTML='<div class="card-body"><h3>Créer et affecter un client</h3><div class="grid g3">'+CLIENT_INPUTS.map(([key,label])=>'<label class="field">'+esc(label)+'<input class="input" data-dossier-client="'+esc(key)+'" type="text"></label>').join("")+'</div><button type="button" class="btn primary" data-live-action="save-dossier-client">Créer et utiliser ce client</button></div>';
         controls.insertAdjacentElement("afterend",form);
       }
       const db=read(),st=current(db);
@@ -547,32 +547,24 @@
       return true;
     }
     if(cmd==="save-dossier-client"){
-      const form=$("#anc-dossier-client-form"),data={};
-      if(!form)return true;
+      const form=$("#anc-dossier-client-form"),data={};if(!form)return true;
       for(const input of $$("[data-dossier-client]",form))data[input.dataset.dossierClient]=input.value.trim();
       if(!data.lastName){notice("Renseigner le nom du client.");return true;}
       data.id=id();
-      const db=read(),st=current(db);
-      db.clients.push(data);
-      if(st){
-        st.fields["owner.firstName"]=data.firstName;
-        st.fields["owner.lastName"]=data.lastName;
-        st.fields["parcel.city"]=data.city;
-      }
-      if(!save(db))return true;
-      for(const [path,value] of [["owner.firstName",data.firstName],["owner.lastName",data.lastName],["parcel.city",data.city]]){
-        const input=sectionField(path);if(input)input.value=value;
-      }
-      form.hidden=true;
-      notice("Client créé et lié au dossier.");
-      return true;
+      const db=read();db.clients.push(data);if(!save(db))return true;
+      return selectClientForDossier(data.id,{reuseCurrent:true});
     }
     if(cmd==="create-client"||el.dataset.action==="new-client-from-draft"){
-      const section=$("#clients");const data={};
+      const section=$("#clients"),data={};
       for(const input of $$("[data-live-client]",section))data[input.dataset.liveClient]=input.value.trim();
-      if(!data.lastName)return notice("Renseigner le nom du client."),true;
+      if(!data.lastName){notice("Renseigner le nom du client.");return true;}
       data.id=id();const db=read();db.clients.push(data);save(db);
-      window.ANCPublicNavigate?.("clients");notice("Client créé pour cette démo.");return true;
+      window.ANCPublicNavigate?.("clients");notice("Client enregistré dans ce navigateur.");return true;
+    }
+    if(cmd==="use-selected-client"){
+      const clientId=$("#anc-live-client-select")?.value;
+      if(!clientId){notice("Sélectionnez un client avant d'ouvrir son dossier.");return true;}
+      return selectClientForDossier(clientId);
     }
     if(el.dataset.liveOpen){switchStudy(el.dataset.liveOpen);return true}
     if(el.dataset.liveDuplicate){duplicateStudy(el.dataset.liveDuplicate);return true}
@@ -581,15 +573,7 @@
       if(st){st.archived=!st.archived;save(db);window.ANCPublicNavigate?.("etudes")}
       return true;
     }
-    if(el.dataset.liveSelectClient){
-      const db=read(),st=current(db),c=db.clients.find(x=>x.id===el.dataset.liveSelectClient);
-      if(st&&c){
-        st.fields["owner.firstName"]=c.firstName;st.fields["owner.lastName"]=c.lastName;
-        st.fields["parcel.city"]=c.city;save(db);
-        window.ANCPublicNavigate?.("dossier");notice("Client affecté au dossier.");
-      }
-      return true;
-    }
+    if(el.dataset.liveSelectClient){return selectClientForDossier(el.dataset.liveSelectClient);}
     return false;
   }
   document.addEventListener("input",event=>{
