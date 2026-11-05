@@ -8,6 +8,7 @@ const parcelResult={type:"FeatureCollection",features:[{type:"Feature",propertie
 async function mockOfficialServices(page){
  await page.route("**/geocodage/search?**",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(searchResult)}));
  await page.route("**/api/cadastre/parcelle?**",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(parcelResult)}));
+ await page.route("**/altimetrie/1.0/calcul/alti/rest/elevation.json?**",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({elevations:[{lon:1.35,lat:44.02,z:143.27,acc:"Précision variable"}]})}));
 }
 
 test("Client local complet → Dossier prérempli → géocodage et contenance cadastrale automatiques",async({page})=>{
@@ -33,16 +34,20 @@ test("Client local complet → Dossier prérempli → géocodage et contenance c
  await expect(page.locator('[data-path="parcel.address"]')).toHaveValue("8 rue des Tilleuls");
  await expect(page.locator('[data-path="parcel.postalCode"]')).toHaveValue("82000");
  await expect(page.locator('[data-path="building.mainRooms"]')).toHaveValue("5");
- await expect(page.locator('[data-path="parcel.altitude"]')).toHaveValue("");
+ await expect(page.locator('[data-path="parcel.altitude"]')).toHaveValue("143.27",{timeout:15000});
+ await expect(page.locator("#anc-coord-lat")).toContainText("44.0200000");
+ await expect(page.locator("#anc-coord-lon")).toContainText("1.3500000");
  await expect(page.locator('[data-path="parcel.geologyCode"]')).toHaveValue("");
  await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1564",{timeout:15000});
  await expect(page.locator('[data-path="parcel.section"]')).toHaveValue("AC");
  await expect(page.locator('[data-path="parcel.number"]')).toHaveValue("0071");
+ await expect(page.locator("#anc-altitude-source")).toContainText("IGN RGE ALTI");
  await expect(page.locator("#anc-parcel-total")).toContainText("1");
  await expect(page.locator("#anc-location-chain-status")).toContainText("Localisation enregistrée");
  await page.reload();
  await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1564");
  await expect(page.locator('[data-path="owner.lastName"]')).toHaveValue("Fournier");
+ await expect(page.locator('[data-path="parcel.altitude"]')).toHaveValue("143.27");
 });
 
 test("Localisation placée avant identification et adresse saisie manuellement → cadastre complet",async({page})=>{
