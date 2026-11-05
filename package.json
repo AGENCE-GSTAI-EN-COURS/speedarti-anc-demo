@@ -4,9 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "postinstall": "mkdir -p assets/images && cp node_modules/leaflet/dist/leaflet.js assets/leaflet.js && cp node_modules/leaflet/dist/leaflet.css assets/leaflet.css && cp node_modules/leaflet/dist/images/* assets/images/"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4"
   }
 }
