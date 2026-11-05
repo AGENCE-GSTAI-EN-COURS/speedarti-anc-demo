@@ -28,6 +28,17 @@ function updateDisplay(){
    const origin=$("#anc-coord-origin");
    if(origin)origin.textContent=s?.geolocation?.source||"Non localisé";
  }
+ const lastEstimate=s?.terrainSources?.availableArea;
+ const totalNow=parse(f["parcel.totalArea"]);
+ if(lastEstimate?.origin==="estimate"&&totalNow!==null&&lastEstimate.total!==totalNow){
+   mutate(st=>{
+     if(st.terrainSources?.availableArea?.origin==="estimate"){
+       delete st.terrainSources.availableArea;
+       st.fields["parcel.availableArea"]="";
+     }
+   });
+   updateInput("parcel.availableArea","");
+ }
  const source=s?.terrainSources?.altitude;
  const a=$("#anc-altitude-source");
  if(a)a.textContent=source?.origin==="IGN"?
@@ -73,7 +84,7 @@ async function elevation({force=false}={}){
      const previous=st.terrainSources?.altitude;
      const entered=String(st.fields?.["parcel.altitude"]??"").trim();
      // Ne jamais écraser une correction manuelle faite pendant l'appel.
-     if(entered&&previous?.origin!=="IGN")return;
+     if(entered&&previous?.origin!=="IGN"&&!force)return;
      st.fields["parcel.altitude"]=String(value);
      st.terrainSources=st.terrainSources||{};
      st.terrainSources.altitude={origin:"IGN",point:key,resource:"ign_rge_alti_wld",accuracy,checkedAt:new Date().toISOString(),value};
@@ -192,14 +203,15 @@ document.addEventListener("input",event=>{
  const path=event.target?.dataset?.path;
  if(path==="parcel.altitude"){
    mutate(s=>{
-     if(s.terrainSources)s.terrainSources.altitude={origin:"manual",checkedAt:new Date().toISOString()};
+     s.terrainSources=s.terrainSources||{};s.terrainSources.altitude={origin:"manual",checkedAt:new Date().toISOString()};
    });
  }
  if(path==="parcel.availableArea"){
    mutate(s=>{
-     if(s.terrainSources)s.terrainSources.availableArea={origin:"manual",checkedAt:new Date().toISOString()};
+     s.terrainSources=s.terrainSources||{};s.terrainSources.availableArea={origin:"manual",checkedAt:new Date().toISOString()};
    });
  }
+ if(path==="parcel.altitude"||path==="parcel.availableArea")updateDisplay();
 },false);
 window.ANCTerrainEnrichment={mount,refreshFromCoordinates,updateDisplay,estimateAvailable,elevation};
 })();
