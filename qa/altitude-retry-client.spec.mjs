@@ -16,7 +16,11 @@ test("Client → cadastre : échec altimétrique temporaire puis reprise automat
  await page.locator('[data-live-client="postalCode"]').fill("82000");
  await page.locator('[data-live-client="city"]').fill("Montauban");
  await page.locator('[data-live-action="create-client"]').click();
+ await expect(page.locator("#live-clients")).toContainText("Lucie Martin");
+ await expect(page.locator('[data-live-select-client]')).toHaveCount(1);
  await page.locator('[data-live-select-client]').first().click();
+ await expect(page.locator("#dossier")).toBeVisible();
+ await expect(page.locator('[data-path="owner.lastName"]')).toHaveValue("Martin");
  await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("489",{timeout:14000});
  await expect(page.locator('[data-path="parcel.altitude"]')).toHaveValue("89.45",{timeout:14000});
  expect(attempts).toBe(2);
