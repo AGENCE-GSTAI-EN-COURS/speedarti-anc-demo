@@ -38,7 +38,7 @@ test("Terrain : météo officielle simulée avec source, sans inventer résultat
  await page.goto("/#terrain");
  await page.locator("#anc-weather-fetch").click();
  await expect(page.locator("#anc-field-source-result")).toContainText("Open-Meteo");
- await expect(page.locator('[data-path="visit.weather"]')).toContainText("3.4 mm");
+ await expect(page.locator('[data-path="visit.weather"]')).toHaveValue(/3.4 mm/);
 });
 test("Rapport : plusieurs pages sans page de synthèse isolée",async({page})=>{
  await page.goto("/#rapport");
