@@ -457,6 +457,7 @@
     if(name==="import"){importData();return true}
     return false;
   }
+  function sectionField(path){return document.querySelector('#dossier [data-path="'+path+'"]');}
   function action(event){
     const el=event.target.closest("button");if(!el)return false;
     if(el.dataset.livePlan)return planAction(el);
@@ -482,7 +483,10 @@
         st.fields["parcel.city"]=data.city;
       }
       if(!save(db))return true;
-      window.ANCPublicNavigate?.("dossier");
+      for(const [path,value] of [["owner.firstName",data.firstName],["owner.lastName",data.lastName],["parcel.city",data.city]]){
+        const input=sectionField(path);if(input)input.value=value;
+      }
+      form.hidden=true;
       notice("Client créé et lié au dossier.");
       return true;
     }
