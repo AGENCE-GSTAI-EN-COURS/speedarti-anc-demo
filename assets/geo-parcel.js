@@ -158,8 +158,9 @@ async function geocode(){
     });
     const a=$('[data-path="parcel.lat"]'),b=$('[data-path="parcel.lng"]');
     if(a)a.value=String(lat);if(b)b.value=String(lng);
-    mount($("#dossier"));
-    message("Adresse reconnue : "+label+" — latitude "+lat.toFixed(5)+", longitude "+lng.toFixed(5)+". Vérification nécessaire.");
+    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();
+    message("Adresse reconnue : "+label+" — latitude "+lat.toFixed(5)+", longitude "+lng.toFixed(5)+". Recherche automatique de parcelle…");
+    setTimeout(()=>detectParcel(),250);
   }catch(err){message("Localisation impossible : "+String(err?.message||err),true)}
   finally{busy=false;}
 }
@@ -187,12 +188,13 @@ async function detectParcel(){
       if(exists){
         if(num(exists.area)===null)exists.area=entry.area;
         exists.source=src;exists.status="AUTO_DETECTED";
-      }else if(st.parcels.length===1&&st.parcels[0].area===""&&!st.parcels[0].number)
+      }else if(st.parcels.length===1&&((st.geolocation?.source==="Géoplateforme IGN/BAN"&&String(st.parcels[0].source||"").startsWith("Exemple du dossier"))||(st.parcels[0].area===""&&!st.parcels[0].number)))
         st.parcels[0]=entry;
       else st.parcels.push(entry);
       st.fields["parcel.section"]=section;st.fields["parcel.number"]=number;
+      st.cadastralGeometry=ftr.geometry||null;
     });
-    render();
+    render();window.ANCMapRuntime?.showParcel?.(ftr);
     for(const [path,value] of [["parcel.section",section],["parcel.number",number]]){
       const el=$('[data-path="'+path+'"]');if(el)el.value=value;
     }
@@ -212,7 +214,7 @@ function gps(){
     for(const [key,value] of [["parcel.lat",lat],["parcel.lng",lng]]){
       const el=$('[data-path="'+key+'"]');if(el)el.value=String(value);
     }
-    mount($("#dossier"));message("Position GPS renseignée. Vérifier le point avant de détecter la parcelle.");
+    mount($("#dossier"));window.ANCMapRuntime?.refresh?.();message("Position GPS renseignée. Vérifier le point avant de détecter la parcelle.");
   },err=>message("GPS non disponible : "+(err.message||"Autorisation refusée"),true),{timeout:12000,enableHighAccuracy:true});
 }
 function handle(event){
@@ -228,7 +230,15 @@ document.addEventListener("input",event=>{
   const el=event.target;
   if(el.matches("[data-parcel-field]"))editParcel(el);
 },true);
+let autoLocateTimer;
 document.addEventListener("change",event=>{
+  if(["parcel.address","parcel.postalCode","parcel.city"].includes(event.target?.dataset?.path)){
+    clearTimeout(autoLocateTimer);
+    autoLocateTimer=setTimeout(()=>{
+      const q=["parcel.address","parcel.postalCode","parcel.city"].map(p=>document.querySelector('[data-path="'+p+'"]')?.value?.trim()||"");
+      if(q.every(Boolean)&&!q.some(v=>/d[ée]mo|d[ée]monstration|exemple/i.test(v)))geocode();
+    },700);
+  }
   const el=event.target;if(el.matches("[data-parcel-field]"))editParcel(el);
 },true);
 window.ANCGeoParcel={mount,handle,geometryArea};
