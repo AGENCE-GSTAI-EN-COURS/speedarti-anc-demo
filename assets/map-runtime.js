@@ -66,6 +66,7 @@ function mount(section){
    L.control.layers({"OpenStreetMap":osm,"Orthophoto IGN":ortho},{"Cadastre IGN":cadastre},{collapsed:false}).addTo(map);
    for(const layer of [osm,ortho,cadastre])layer.on("tileerror",()=>status("Une couche cartographique ne répond pas. Essayer un autre fond ou vérifier la connexion.",true));
    if(coords){marker=L.marker(coords).addTo(map).bindPopup("Position du chantier — à confirmer");status("Carte centrée sur le dossier. Détection cadastrale à confirmer.");}
+   if(study()?.cadastralGeometry)showParcel(study().cadastralGeometry);
    else status("Carte active. Renseignez une adresse réelle puis cliquez sur « Localiser depuis l’adresse ».");
    setTimeout(()=>{if(map)map.invalidateSize()},100);
  });
