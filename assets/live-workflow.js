@@ -61,9 +61,17 @@
   }
   function bindFields(section){
     const db=read(),study=current(db);if(!study)return;
-    for(const el of $$("[data-path]",section)){
+    const isolated=!!(study.clientId||study.isNew);
+    for(const el of $("[data-path]",section)){
       const path=el.dataset.path;
       if(Object.prototype.hasOwnProperty.call(study.fields,path))putValue(el,study.fields[path]);
+      else if(isolated){
+        // Ne jamais présenter l'altitude, la géologie ou la surface du dossier SPÉCIMEN
+        // comme si elles appartenaient au client sélectionné.
+        if(el.type==="checkbox"||el.type==="radio")el.checked=false;
+        else if(el.tagName==="SELECT")el.selectedIndex=0;
+        else if(el.type!=="file")el.value="";
+      }
     }
   }
   function captureFieldState(root){
@@ -188,7 +196,9 @@
     return addr.length>=4&&city.length>=2&&!/d[ée]mo|d[ée]monstration|exemple|commune test/i.test(addr+" "+city);
   }
   function applyClient(st,client){
-    const c=client||{},fields=st.fields||(st.fields={});
+    const c=client||{};
+    if(!st.clientId){st.fields={};st.cells={};st.plan=null;}
+    const fields=st.fields||(st.fields={});
     const mapping={
       "owner.civility":"civility","owner.firstName":"firstName","owner.lastName":"lastName",
       "owner.company":"company","owner.email":"email","owner.phone":"phone",
