@@ -248,6 +248,7 @@ async function json(url){
   }finally{clearTimeout(stop);}
 }
 async function geocode(){
+ clearTimeout(autoLocateTimer);
  if(busy)return message("Recherche précédente en cours.",true);
  const before=get(),studyId=before?.id,lookupKey=addressKey(before?.fields);
  if(!addressReady(before?.fields))return message("Renseigner une adresse de projet et une commune réelles (ou utiliser le GPS).",true);
@@ -322,6 +323,7 @@ async function detectParcel(){
   finally{busy=false}
 }
 function gps(){
+ clearTimeout(autoLocateTimer);
  if(!navigator.geolocation)return message("Géolocalisation GPS indisponible sur cet appareil.",true);
  message("Autorisation GPS requise. Le point localisé devra être vérifié sur la carte.");
  navigator.geolocation.getCurrentPosition(async pos=>{
@@ -364,19 +366,34 @@ function handle(event){
   return false;
 }
 document.addEventListener("input",event=>{
-  const el=event.target;
-  if(el.matches("[data-parcel-field]"))editParcel(el);
+ const el=event.target;
+ if(el.matches("[data-parcel-field]"))editParcel(el);
+ const key=el?.dataset?.locationEntry;
+ if(addressParts.includes(key)){
+   const value=el.value;
+   const original=$('#dossier [data-path="'+key+'"]');
+   if(original)original.value=value;
+   mutate(st=>{st.fields[key]=value;});
+ }
 },true);
-let autoLocateTimer;
 document.addEventListener("change",event=>{
-  if(["parcel.address","parcel.postalCode","parcel.city"].includes(event.target?.dataset?.path)){
-    clearTimeout(autoLocateTimer);
-    autoLocateTimer=setTimeout(()=>{
-      const q=["parcel.address","parcel.postalCode","parcel.city"].map(p=>document.querySelector('[data-path="'+p+'"]')?.value?.trim()||"");
-      if(q.every(Boolean)&&!q.some(v=>/d[ée]mo|d[ée]monstration|exemple/i.test(v)))geocode();
-    },700);
-  }
-  const el=event.target;if(el.matches("[data-parcel-field]"))editParcel(el);
+ const el=event.target;
+ if(el.matches("[data-parcel-field]"))editParcel(el);
+ const key=el?.dataset?.locationEntry||el?.dataset?.path;
+ if(!addressParts.includes(key))return;
+ const value=el.value;
+ const before=get(),previousKey=before?.locationAddressKey;
+ mutate(st=>{st.fields[key]=value;});
+ syncLocationFields();
+ const now=get();
+ if(previousKey&&previousKey!==addressKey(now?.fields))invalidateOldDetection();
+ clearTimeout(autoLocateTimer);
+ if(addressReady(now?.fields)){
+   autoLocateTimer=setTimeout(()=>{if($("#dossier"))geocode();},800);
+ }else{
+   const status=$("#anc-location-chain-status");
+   if(status)status.textContent="Adresse incomplète : compléter la rue et la commune ou utiliser le GPS.";
+ }
 },true);
 window.ANCGeoParcel={mount,handle,geometryArea};
 })();
