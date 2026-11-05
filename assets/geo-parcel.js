@@ -10,7 +10,11 @@ const get=()=>window.ANCRealWorkflow?.getStudy?.();
 const mutate=cb=>window.ANCRealWorkflow?.mutateStudy?.(cb);
 const esc=t=>String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const create=(blank=true)=>({id:"p_"+Date.now().toString(36)+"_"+Math.random().toString(36).slice(2,7),label:blank?"":"Parcelle principale",section:"",number:"",area:"",source:"Saisie manuelle",status:"TO_CONFIRM"});
-const num=x=>x===null||x===undefined||String(x).trim()===""?null:Number.isFinite(Number(String(x).replace(",",".")))?Number(String(x).replace(",",".")):null;
+const num=x=>{
+ if(x===null||x===undefined||String(x).trim()==="")return null;
+ const parsed=Number(String(x).replace(/[\s\u00a0\u202f]/g,"").replace(",","."));
+ return Number.isFinite(parsed)?parsed:null;
+};
 let busy=false;
 function message(m,error=false){
   let el=$("#anc-parcel-feedback");
@@ -24,7 +28,7 @@ function message(m,error=false){
 }
 function normalizeArea(r){
   const p=r.properties||{};
-  for(const key of ["contenance","surface_m2","surface","surface_cadastre"]){
+  for(const key of ["contenance","surface_m2","surface","surface_cadastre","contenance_cadastrale","surface_parcelle"]){
     const v=num(p[key]);if(v!==null&&v>0)return {area:Math.round(v),exact:key==="contenance"};
   }
   return {area:geometryArea(r.geometry),exact:false};
@@ -51,7 +55,20 @@ function currentParcels(){
 }
 function updateTotals(){
   const arr=currentParcels();
-  const known=arr.map(p=>num(p.area)).filter(v=>v!==null&&v>=0);
+  const current=get(),geom=current?.cadastralGeometry;
+  // Surface géométrique indicative si l'API ne donne pas la contenance.
+  if(geom){
+    const detected=arr.find(p=>p.status==="AUTO_DETECTED");
+    if(detected&&!(num(detected.area)>0)){
+      const area=geometryArea(geom);
+      if(area!==null&&area>0)mutate(st=>{
+        const parcel=st.parcels?.find(p=>p.id===detected.id);
+        if(parcel){parcel.area=area;parcel.source="Cadastre IGN — surface géométrique indicative";}
+      });
+    }
+  }
+  const fresh=currentParcels();
+  const known=fresh.map(p=>num(p.area)).filter(v=>v!==null&&v>0);
   const total=known.reduce((a,b)=>a+b,0);
   const el=$("#anc-parcel-total");if(el)el.textContent=known.length?total.toLocaleString("fr-FR",{maximumFractionDigits:2})+" m²":"Surface à renseigner";
   const field=$('[data-path="parcel.totalArea"]');
@@ -63,6 +80,9 @@ function updateTotals(){
     if(first){s.fields["parcel.section"]=String(first.section||"");s.fields["parcel.number"]=String(first.number||"");s.fields["parcel.area"]=num(first.area)===null?"":String(first.area);}
   });
   syncPrimaryFields();
+  const note=$("#anc-parcel-surface-source");
+  const first=fresh.find(p=>p.status==="AUTO_DETECTED")||fresh.find(p=>p.area!==""&&p.section&&p.number);
+  if(note)note.textContent=first?.source||"Surface non déterminée : cliquer sur Détecter la parcelle ou saisir une mesure vérifiée.";
 }
 function syncPrimaryFields(){
   const s=get(),f=s?.fields||{},parcels=s?.parcels||[];
@@ -83,6 +103,11 @@ function syncPrimaryFields(){
 }
 function render(){
   const list=$("#anc-v3-parcel-list");if(!list)return;
+  if(!$("#anc-parcel-surface-source")){
+    const area=$("#dossier [data-path='parcel.totalArea']");
+    const note=document.createElement("small");note.id="anc-parcel-surface-source";note.className="anc-source-note";
+    area?.closest(".field")?.append(note);
+  }
   const entries=currentParcels();
   list.replaceChildren();
   entries.forEach((p,i)=>{
