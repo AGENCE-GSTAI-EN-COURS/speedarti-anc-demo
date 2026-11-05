@@ -33,3 +33,19 @@ test("Si la contenance source manque, calcul géométrique indicatif expliciteme
   await expect(page.locator('[data-path="parcel.area"]')).not.toHaveValue("");
   await expect(page.locator(".anc-v3-parcel").last()).toContainText("surface géométrique indicative");
 });
+
+test("Régression terrain : la surface totale reste remplie après changement d'onglet",async({page})=>{
+ await page.route("**/api/cadastre/parcelle?**",route=>route.fulfill({status:200,contentType:"application/json",
+ body:JSON.stringify({features:[{type:"Feature",properties:{section:"BD",numero:"0018",contenance:"1 564"},geometry:{type:"Polygon",
+ coordinates:[[[1.35,44.02],[1.3501,44.02],[1.3501,44.0201],[1.35,44.0201],[1.35,44.02]]]}}]})
+ }));
+ await page.goto("/#dossier");
+ await page.locator("#anc-detect-parcel").click();
+ await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1564");
+ await expect(page.locator("#anc-parcel-surface-source")).toContainText("contenance source");
+ await page.locator('#public-tabs [data-tab="terrain"]').click();
+ await page.locator('#public-tabs [data-tab="dossier"]').click();
+ await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1564");
+ await page.reload();
+ await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1564");
+});
