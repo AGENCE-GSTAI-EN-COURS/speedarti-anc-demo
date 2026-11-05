@@ -315,7 +315,7 @@
     ];
     pages.innerHTML=chapters.join("");
     const summary=document.createElement("section");summary.className="a4 anc-generated-page";summary.id="axis-report-page";
-    summary.innerHTML='<div style="padding:15mm"><h1>Synthèse technique complémentaire — SpeedArti ANC</h1><p><strong>VALIDATION PROFESSIONNELLE OBLIGATOIRE</strong></p><p><b>Référence :</b> '+escText(f.reference||st.id)+' — <b>Client :</b> '+escText(name)+' — <b>Commune :</b> '+escText(f["parcel.city"])+'</p>'+
+    summary.innerHTML='<div style="padding:15mm"><h1>Synthèse technique complémentaire — SpeedArti ANC</h1><p><strong>VALIDATION PROFESSIONNELLE OBLIGATOIRE</strong></p><p><b>Étude :</b> '+escText(f.title||st.name)+'</p><p><b>Référence :</b> '+escText(f.reference||st.id)+' — <b>Client :</b> '+escText(name)+' — <b>Commune :</b> '+escText(f["parcel.city"])+'</p>'+
       '<h2>Sondages</h2>'+table(["Sondage","Profondeur"],boreholes.length?boreholes.map(x=>[x.name,x.depth?x.depth+" cm":"À confirmer"]):[["Aucun sondage",""]])+
       '<h2>Porchet</h2>'+table(["Essai","K moyen"],krows.length?krows.map(x=>[x.key,x.result.mean===null?"Non calculé":x.result.mean.toFixed(3)]):[["Aucun",""]])+
       '<p>Tranchées : '+(st.plan?geometryLength(st.plan).toFixed(2)+" m":"Non mesurées")+'</p></div>';
