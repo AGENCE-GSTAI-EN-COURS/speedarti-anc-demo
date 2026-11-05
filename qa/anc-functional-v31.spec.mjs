@@ -35,7 +35,10 @@ test("Porchet : métadonnées dossier préremplies, lignes modifiables et zéro 
 });
 test("Terrain : météo officielle simulée avec source, sans inventer résultats risques",async({page})=>{
  await page.route("**/v1/archive?**",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({daily:{precipitation_sum:[3.4],temperature_2m_max:[17.6],temperature_2m_min:[9.2]}})}));
- await page.goto("/#terrain");
+ await page.goto("/#dossier");
+ await page.locator('[data-path="parcel.lat"]').fill("44.02");
+ await page.locator('[data-path="parcel.lng"]').fill("1.35");
+ await page.locator('#public-tabs [data-tab="terrain"]').click();
  await page.locator("#anc-weather-fetch").click();
  await expect(page.locator("#anc-field-source-result")).toContainText("Open-Meteo");
  await expect(page.locator('[data-path="visit.weather"]')).toHaveValue(/3.4 mm/);
