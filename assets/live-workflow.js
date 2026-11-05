@@ -62,7 +62,7 @@
   function bindFields(section){
     const db=read(),study=current(db);if(!study)return;
     const isolated=!!(study.clientId||study.isNew);
-    for(const el of $("[data-path]",section)){
+    for(const el of section.querySelectorAll("[data-path]")){
       const path=el.dataset.path;
       if(Object.prototype.hasOwnProperty.call(study.fields,path))putValue(el,study.fields[path]);
       else if(isolated){
