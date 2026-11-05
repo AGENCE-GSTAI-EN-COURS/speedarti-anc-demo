@@ -66,7 +66,7 @@
         const mounted=viewport.querySelector("section");
         try {window.ANCDemoEngine?.addHorizonButtons?.(mounted);}
         catch(err){console.error("ANC demo horizons",slug,err);}
-        try {window.ANCRealWorkflow?.mount?.(mounted,slug);window.ANCGeoParcel?.mount?.(mounted);window.ANCRealControls?.mount?.(mounted);window.ANCMapRuntime?.mount?.(mounted);}
+        try {window.ANCRealWorkflow?.mount?.(mounted,slug);window.ANCGeoParcel?.mount?.(mounted);window.ANCRealControls?.mount?.(mounted);window.ANCFieldSources?.mount?.(mounted);window.ANCMapGallery?.mount?.(mounted);window.ANCMapRuntime?.mount?.(mounted);}
         catch(err){
           console.error("ANC demo real workflow mount",slug,err);
           window.__ancMountError={page:slug,message:String(err?.message||err)};
@@ -101,6 +101,9 @@
       else toast("Cette action n'est pas disponible dans le parcours public.");
       return;
     }
+    if(window.ANCMapRuntime?.handle?.(event)){event.preventDefault();return;}
+    if(window.ANCMapGallery?.handle?.(event)){event.preventDefault();return;}
+    if(window.ANCFieldSources?.handle?.(event)){event.preventDefault();return;}
     if(window.ANCGeoParcel?.handle?.(event)){event.preventDefault();return;}
     if(window.ANCRealControls?.handle?.(event)){event.preventDefault();return;}
     if(window.ANCRealWorkflow?.handle?.(event)){event.preventDefault();return;}

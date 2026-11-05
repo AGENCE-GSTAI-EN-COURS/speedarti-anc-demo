@@ -1,7 +1,7 @@
 /* ANC public — cartographie réellement interactive, aucune formule ANC privée. */
 (()=>{
 "use strict";
-let map=null, marker=null,parcelLayer=null, activeSection=null, activeStudyId=null;
+let map=null, marker=null,parcelLayer=null, activeSection=null, activeStudyId=null, mapLayers={};
 const assetBase=new URL(".",document.currentScript?.src||location.href).href;
 const $=q=>document.querySelector(q);
 const study=()=>window.ANCRealWorkflow?.getStudy?.();
@@ -18,7 +18,7 @@ const status=(message,warning=false)=>{
 };
 function destroy(){
  if(map){try{map.remove()}catch(e){console.warn(e)}}
- map=null;marker=null;parcelLayer=null;
+ map=null;marker=null;parcelLayer=null;mapLayers={};
 }
 function loadLeaflet(){
  if(window.L?.map)return Promise.resolve(true);
@@ -36,7 +36,7 @@ function mount(section){
  if(section.id==="dossier")target=section.querySelector(".geo-map-frame");
  else {
    const holder=document.createElement("article");holder.className="card anc-real-map-card";
-   holder.innerHTML='<header class="card-head"><div><h2>🗺️ Carte réelle du dossier ANC</h2><p>Fond OpenStreetMap, orthophoto IGN, cadastre IGN. Dessin réglementaire et mesures du moteur privé non disponibles ici.</p></div></header><div class="card-body"><div class="anc-real-map-target"></div></div>';
+   holder.innerHTML='<header class="card-head"><div><h2>🗺️ Plans et métrés — vues cartographiques</h2><p>Choisissez une vue : localisation, cadastre, aérien, BRGM ou implantation. Les métrés réglementaires du moteur privé ne sont pas encore déployés ici.</p></div></header><div class="card-body"><div class="anc-map-tabs"><button type="button" class="btn secondary" data-anc-map-view="situation">Situation</button><button type="button" class="btn secondary" data-anc-map-view="cadastre">Cadastre</button><button type="button" class="btn secondary" data-anc-map-view="aerial">Vue aérienne</button><button type="button" class="btn secondary" data-anc-map-view="geology">BRGM</button><button type="button" class="btn primary" data-anc-map-view="implantation">Implantation ANC</button></div><div class="anc-real-map-target"></div><button type="button" class="btn primary" data-anc-map-save="1">Enregistrer cette vue dans Cartes du dossier</button></div>';
    section.querySelector(".section-head")?.insertAdjacentElement("afterend",holder);
    target=holder.querySelector(".anc-real-map-target");
    const old=section.querySelector("#anc-v3-live-map");
@@ -64,8 +64,12 @@ function mount(section){
      layers:"CADASTRALPARCELS.PARCELLAIRE_EXPRESS",format:"image/png",transparent:true,version:"1.3.0",
      attribution:"IGN — cadastre",maxZoom:20
    }).addTo(map);
-   L.control.layers({"OpenStreetMap":osm,"Orthophoto IGN":ortho},{"Cadastre IGN":cadastre},{collapsed:false}).addTo(map);
-   for(const layer of [osm,ortho,cadastre])layer.on("tileerror",()=>status("Une couche cartographique ne répond pas. Essayer un autre fond ou vérifier la connexion.",true));
+   const geology=L.tileLayer.wms("https://geoservices.brgm.fr/geologie",{
+     layers:"SCAN_D_GEOL50",format:"image/png",transparent:true,version:"1.1.1",attribution:"BRGM — carte géologique 1:50 000",maxZoom:18
+   });
+   mapLayers={osm,ortho,cadastre,geology};
+   L.control.layers({"OpenStreetMap":osm,"Orthophoto IGN":ortho},{"Cadastre IGN":cadastre,"Carte géologique BRGM":geology},{collapsed:false}).addTo(map);
+   for(const layer of [osm,ortho,cadastre,geology])layer.on("tileerror",()=>status("Une couche cartographique ne répond pas. Essayer un autre fond ou vérifier la connexion.",true));
    if(coords){marker=L.marker(coords).addTo(map).bindPopup("Position du chantier — à confirmer");status("Carte centrée sur le dossier. Détection cadastrale à confirmer.");}
    if(study()?.cadastralGeometry)showParcel(study().cadastralGeometry);
    else status("Carte active. Renseignez une adresse réelle puis cliquez sur « Localiser depuis l’adresse ».");
@@ -88,5 +92,41 @@ function showParcel(geojson){
    status("Contour cadastral IGN affiché — à confirmer sur le terrain.");
  }catch(err){status("La parcelle a été détectée, mais son contour ne peut pas être affiché.",true);}
 }
-window.ANCMapRuntime={mount,refresh,showParcel};
+function selectView(view){
+ if(!map)return false;
+ const {osm,ortho,cadastre,geology}=mapLayers;
+ for(const layer of [osm,ortho,cadastre,geology])if(layer&&map.hasLayer(layer))map.removeLayer(layer);
+ if(view==="aerial"||view==="implantation"){ortho.addTo(map);cadastre.addTo(map);}
+ else if(view==="geology"){osm.addTo(map);geology.addTo(map);}
+ else if(view==="cadastre"){osm.addTo(map);cadastre.addTo(map);}
+ else osm.addTo(map);
+ map.__ancView=view;
+ status("Vue "+view+" : sources officielles à contrôler, données indicatives.");
+ return true;
+}
+function handle(event){
+ const view=event.target.closest("[data-anc-map-view]");
+ if(view){selectView(view.dataset.ancMapView);return true;}
+ const save=event.target.closest("[data-anc-map-save]");
+ if(save){
+   const s=study(),f=s?.fields||{},lat=Number(f["parcel.lat"]),lng=Number(f["parcel.lng"]);
+   if(!map||!Number.isFinite(lat)||!Number.isFinite(lng)||!f["parcel.lat"]||!f["parcel.lng"]){status("Position du dossier requise pour enregistrer une carte.",true);return true;}
+   const view=map.__ancView||"implantation";
+   const bounds=map.getBounds(),b=[bounds.getWest(),bounds.getSouth(),bounds.getEast(),bounds.getNorth()];
+   const remote=view==="geology";
+   const url=(remote?"https://geoservices.brgm.fr/geologie":"https://data.geopf.fr/wms-r/wms")+
+     "?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&SRS=EPSG%3A4326&FORMAT=image%2Fpng&TRANSPARENT=TRUE&WIDTH=900&HEIGHT=650&LAYERS="+
+     encodeURIComponent(view==="geology"?"SCAN_D_GEOL50":view==="aerial"?"ORTHOIMAGERY.ORTHOPHOTOS":view==="situation"?"GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2":"CADASTRALPARCELS.PARCELLAIRE_EXPRESS")+
+     "&BBOX="+encodeURIComponent(b.join(","));
+   window.ANCRealWorkflow?.mutateStudy?.(st=>{
+     st.maps=Array.isArray(st.maps)?st.maps:[];
+     st.maps=st.maps.filter(x=>x.kind!==view);
+     st.maps.push({kind:view,url,source:remote?"BRGM":"IGN",status:"TO_CONFIRM",savedAt:new Date().toISOString(),center:[lat,lng],bounds:b});
+   });
+   status("Vue "+view+" enregistrée comme référence cartographique du dossier, à vérifier dans Cartes du dossier.");
+   return true;
+ }
+ return false;
+}
+window.ANCMapRuntime={mount,refresh,showParcel,selectView,handle};
 })();

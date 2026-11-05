@@ -274,41 +274,53 @@
   }
   function report(section){
     const db=read(),st=current(db);if(!st)return;
-    const source=st.fields||{};
-    const porchet=st.porchet?JSON.parse(st.porchet):{};
-    const sheets=porchet.sheets||{};
-    const formula=window.ANCPorchetExcel?.calculate;
-    const krows=[];
-    for(const key of ["KP1","KP2","KP3","KP4"]){
-      const item=sheets[key];if(!item||!formula)continue;
-      const result=formula(item);
-      krows.push({key,mean:result.mean,graphical:result.graphical,complete:result.complete});
-    }
+    const f=st.fields||{},escText=x=>esc(x===undefined||x===null||x===""?"À renseigner":x);
+    let sheets={};try{sheets=(st.porchet?JSON.parse(st.porchet):{}).sheets||{}}catch{}
+    const porchet=window.ANCPorchetExcel?.calculate;
+    const krows=["KP1","KP2","KP3","KP4"].map(key=>{
+      const s=sheets[key];if(!s||!porchet)return null;const r=porchet(s);
+      return {key,result:r,hasInputs:[s.diameter,s.height,...(s.graduations||[])].some(x=>x!==""&&x!==undefined)};
+    }).filter(Boolean);
     const boreholes=(st.cells?.sondages||[]).map((entry,i)=>{
-      const f=entry.fields||{},pick=(p)=>Object.entries(f).find(([key])=>key.endsWith(p))?.[1]||"";
-      return {name:pick(".label")||"S"+(i+1),depth:pick(".depth"),slope:pick(".slope"),classification:pick(".classification"),horizons:Object.entries(f).filter(([k])=>/horizons\.\d+\.soil$/.test(k)).map(([,v])=>v)};
+      const fields=entry.fields||{},pick=k=>Object.entries(fields).find(([key])=>key.endsWith(k))?.[1]||"";
+      return {name:pick(".label")||"S"+(i+1),depth:pick(".depth"),classification:pick(".classification"),horizons:Object.entries(fields).filter(([key])=>/horizons\.\d+\.soil$/.test(key)).map(([,value])=>value)};
     });
-    const title=source.title||st.name;
-    const ref=source.reference||st.id;
-    const first=source["owner.firstName"]||"",last=source["owner.lastName"]||"";
-    const commune=source["parcel.city"]||"Commune non renseignée";
-    const page=$("#axis-report-page",section);
-    if(!page)return;
-    page.innerHTML='<div style="padding:20mm 17mm;font-family:Arial,sans-serif;color:#263b52">'+
-      '<h1 style="color:#164a82">SPEEDARTI ANC — Rapport de démonstration</h1>'+
-      '<div class="notice warn"><strong>SPÉCIMEN — VALIDATION PROFESSIONNELLE OBLIGATOIRE.</strong> Ceci est un récapitulatif de vos saisies, pas une étude validée.</div>'+
-      '<h2>'+esc(title)+'</h2><p><strong>Référence :</strong> '+esc(ref)+'<br><strong>Client :</strong> '+esc((first+" "+last).trim())+
-      '<br><strong>Commune :</strong> '+esc(commune)+'<br><strong>Surface parcelle :</strong> '+esc(source["parcel.totalArea"]||"À vérifier")+' m²</p>'+
-      '<h2>Sondages saisis</h2><table style="width:100%;border-collapse:collapse"><tr><th>Sondage</th><th>Profondeur</th><th>Pente</th><th>Classification</th></tr>'+
-      (boreholes.length?boreholes.map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.depth)+' cm</td><td>'+esc(x.slope)+' %</td><td>'+esc(x.classification)+'</td></tr>').join(""):'<tr><td colspan="4">Aucun sondage saisi</td></tr>')+
-      '</table><h2>Essais Porchet — Excel Fred</h2><table style="width:100%;border-collapse:collapse"><tr><th>Essai</th><th>K moyen (mm/h)</th><th>K graphique (mm/h)</th></tr>'+
-      (krows.length?krows.map(x=>'<tr><td>'+esc(x.key)+'</td><td>'+(x.mean===null?"Non calculé":x.mean.toFixed(3))+'</td><td>'+(x.graphical===null?"Non calculé":x.graphical.toFixed(3))+'</td></tr>').join(""):'<tr><td colspan="3">Aucun essai Porchet saisi</td></tr>')+'</table>'+
-      '<h2>Plan de démonstration</h2><p>'+(st.plan
-        ? 'Longueur des tracés dans le repère métrique local : '+geometryLength(st.plan).toFixed(2)+' m (non géoréférencé, à confirmer).'
-        : 'Aucun tracé réalisé.')+'</p>'+
-      '<p><strong>Contrôles requis :</strong> vérifier les mesures, la stabilité, le choix de la valeur K et les règles applicables avant toute conclusion technique.</p>'+
-      '<p style="margin-top:30px;border-top:1px solid #ddd;padding-top:10px">Le professionnel valide les résultats et le rapport définitif.</p></div>';
-    for(const other of $$("#report-pages > :not(#axis-report-page)",section))other.hidden=true;
+    const pages=$("#report-pages",section);if(!pages)return;
+    const chapter=(title,body)=>'<section class="a4 anc-generated-page"><div class="page-head"><span>SpeedArti ANC — SPÉCIMEN</span><span>'+escText(f.reference||st.id)+'</span></div><div style="padding:14mm 12mm"><h1>'+title+'</h1><p class="notice warn">SPÉCIMEN — VALIDATION PROFESSIONNELLE OBLIGATOIRE. Aucune information non renseignée n’est considérée comme vérifiée.</p>'+body+'</div><div class="page-foot"><span>Document provisoire</span><span>Fred valide les calculs et conclusions</span></div></section>';
+    const table=(heads,rows)=>'<table style="width:100%;border-collapse:collapse"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+escText(x)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
+    const name=[f["owner.firstName"],f["owner.lastName"]].filter(Boolean).join(" ");
+    const maps=Array.isArray(st.maps)?st.maps:[];
+    const sources=st.sources||{};
+    const parcelRows=(st.parcels||[]).map(p=>[p.section,p.number,p.area===""?"Non connue":p.area,p.source||"À vérifier"]);
+    const sitePhotos=st.cells?.photos||[];
+    const chapters=[
+      chapter("Rapport d’étude de conception ANC",
+        '<h2>'+escText(f.title||st.name)+'</h2><p><b>Référence :</b> '+escText(f.reference||st.id)+'</p><p><b>Client :</b> '+escText(name)+'</p><p><b>Adresse :</b> '+escText([f["parcel.address"],f["parcel.postalCode"],f["parcel.city"]].filter(Boolean).join(" "))+'</p><p><b>Date :</b> '+escText(f["visit.studyDate"])+'</p><p>Rapport technique provisoire non opposable, à compléter et à signer par le bureau d’études.</p>'),
+      chapter("Sommaire","<ol><li>Identification et parcelles</li><li>Reconnaissances et sondages</li><li>Perméabilité Porchet</li><li>Contexte environnemental et cartographique</li><li>Préconisations à valider</li><li>Annexes et pièces justificatives</li></ol>"),
+      chapter("1. Identification et parcelles",
+        '<p><b>Commune :</b> '+escText(f["parcel.city"])+'</p><p><b>Surface totale renseignée :</b> '+escText(f["parcel.totalArea"])+' m²</p>'+table(["Section","Numéro","Surface m²","Origine"],parcelRows.length?parcelRows:[["À renseigner","","",""]])+
+        '<h2>Visite terrain</h2><p>'+escText(f["visit.notes"])+'</p>'),
+      chapter("2. Reconnaissances et sondages",
+        table(["Sondage","Profondeur","Classification","Horizons saisis"],boreholes.length?boreholes.map(x=>[x.name,x.depth?x.depth+" cm":"",x.classification,x.horizons.filter(Boolean).join(" / ")||"À renseigner"]):[["Aucun sondage","", "",""]])+
+        '<p>Le contenu des horizons doit être confirmé par observation du sol. Les informations saisies sont conservées à titre préparatoire.</p>'),
+      chapter("3. Essais de perméabilité Porchet",
+        table(["Essai","K moyen mm/h","K graphique mm/h","Contrôle"],krows.length?krows.map(x=>[x.key,x.result.mean===null?"Non calculé":x.result.mean.toFixed(3),x.result.graphical===null?"Non calculé":x.result.graphical.toFixed(3),x.result.complete?"À valider par Fred":"Saisie incomplète"]):[["Aucun essai","","",""]])+
+        '<p>Résultats indicatifs : contrôler les temps, graduations, protocoles, unités et résultats avec le tableur validé de Fred.</p>'),
+      chapter("4. Contexte environnemental et cartographie",
+        '<p><b>Météo :</b> '+escText(sources.weather?.summary||f["visit.weather"])+'</p><p><b>Origine météo :</b> '+escText(sources.weather?.source)+'</p><p><b>Géorisques :</b> '+escText(sources.risks?.summary)+'</p><p><b>BRGM :</b> '+escText(sources.geology?.summary)+'</p><p><b>Cartes du dossier :</b> '+(maps.length?maps.length+" carte(s) conservée(s)":"Aucune capture validée")+'</p><p>Les périmètres de risques nécessitent une vérification auprès des services officiels, même en l’absence de résultat automatique.</p>'),
+      chapter("5. Préconisations et réserves",
+        '<p><b>Longueur de tranchées dans le schéma local :</b> '+(st.plan?geometryLength(st.plan).toFixed(2)+" m (non géoréférencé)":"Non mesurée")+'</p><p>Filière proposée : À déterminer par le bureau d’études après validation des essais, des sondages et des distances d’implantation.</p><p>Les distances minimales, règles et conditions de rejet doivent être documentées et signées par le professionnel.</p>'),
+      chapter("6. Annexes et pièces justificatives",
+        '<p>Plan de situation : '+(maps.some(x=>x.kind==="location")?"Présent":"À joindre")+'</p><p>Plan cadastral : '+(maps.some(x=>x.kind==="cadastral")?"Présent":"À joindre")+'</p><p>Plan d’implantation : '+(maps.some(x=>x.kind==="layout")?"Présent":"À joindre")+'</p><p>Photos : '+(sitePhotos.length?sitePhotos.length+" élément(s) enregistré(s)":"À joindre")+'</p><p>Les illustrations ne sont pas inventées si aucune capture validée n’a été enregistrée.</p>')
+    ];
+    pages.innerHTML=chapters.join("");
+    const summary=document.createElement("section");summary.className="a4 anc-generated-page";summary.id="axis-report-page";
+    summary.innerHTML='<div style="padding:15mm"><h1>Synthèse technique complémentaire — SpeedArti ANC</h1><p><strong>VALIDATION PROFESSIONNELLE OBLIGATOIRE</strong></p><p><b>Étude :</b> '+escText(f.title||st.name)+'</p><p><b>Référence :</b> '+escText(f.reference||st.id)+' — <b>Client :</b> '+escText(name)+' — <b>Commune :</b> '+escText(f["parcel.city"])+'</p>'+
+      '<h2>Sondages</h2>'+table(["Sondage","Profondeur"],boreholes.length?boreholes.map(x=>[x.name,x.depth?x.depth+" cm":"À confirmer"]):[["Aucun sondage",""]])+
+      '<h2>Porchet</h2>'+table(["Essai","K moyen"],krows.length?krows.map(x=>[x.key,x.result.mean===null?"Non calculé":x.result.mean.toFixed(3)]):[["Aucun",""]])+
+      '<p>Tranchées : '+(st.plan?geometryLength(st.plan).toFixed(2)+" m":"Non mesurées")+'</p></div>';
+    pages.append(summary);
+    pages.querySelectorAll(":scope > section").forEach(el=>el.hidden=false);
   }
   function beforeNavigate(){
     const section=$("#public-sections section");if(!section)return;

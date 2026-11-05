@@ -24,7 +24,7 @@ const n=value=>{
 };
 const format=(x,d=2)=>x===null||!Number.isFinite(x)?"—":new Intl.NumberFormat("fr-FR",{maximumFractionDigits:d,minimumFractionDigits:d}).format(x);
 const fmtTiny=x=>x===null||!Number.isFinite(x)?"—":x.toExponential(3).replace(".",",");
-const empty=()=>({ref:"",diameter:"",depth:"",height:"",calibration:"1.568",graduations:TIMES.map(()=>""),slope:"",soil:""});
+const empty=()=>({ref:"",diameter:"",depth:"",height:"",calibration:"1.568",times:TIMES.slice(),graduations:TIMES.map(()=>""),slope:"",soil:""});
 const defaultBook=()=>({version:1,active:"KP1",fields:{},sheets:{KP1:empty(),KP2:empty(),KP3:empty(),KP4:empty()}});
 const privateState=()=>window.SpeedArtiANC?.getState?.()||null;
 function publicBook(){
@@ -46,14 +46,16 @@ function writeBook(book){
  catch{return false;}
 }
 function cloned(value){return JSON.parse(JSON.stringify(value));}
+function dossierFields(){return window.ANCRealWorkflow?.getStudy?.()?.fields||{};}
 function snapshot(book,key){
  const st=privateState();
  const meta=book.fields||{};
- return {dossier:meta.dossier??st?.reference??"",
-   client:meta.client??[st?.owner?.firstName,st?.owner?.lastName].filter(Boolean).join(" "),
-   date:meta.date??st?.visit?.studyDate??"",
+ const d=dossierFields();
+ return {dossier:d.reference||meta.dossier||st?.reference||"",
+   client:[d["owner.firstName"],d["owner.lastName"]].filter(Boolean).join(" ")||meta.client||[st?.owner?.firstName,st?.owner?.lastName].filter(Boolean).join(" "),
+   date:d["visit.studyDate"]||meta.date||st?.visit?.studyDate||"",
    technician:meta.technician??"",
-   commune:meta.commune??st?.parcel?.city??"",
+   commune:d["parcel.city"]||meta.commune||st?.parcel?.city||"",
    analyst:meta.analyst??"",
    ...(key==="Exemple"?cloned(EXAMPLE):book.sheets[key]||empty())};
 }
@@ -61,11 +63,13 @@ function calculate(sheet){
  const D=n(sheet.diameter),P=n(sheet.depth),H=n(sheet.height),rate=n(sheet.calibration);
  const area=(D!==null&&D>0&&H!==null&&H>0)?Math.PI*(D/2)**2+2*Math.PI*(D/2)*H:null;
  const first=n(sheet.graduations?.[0]);
- const rows=TIMES.map((minutes,i)=>{
+ const rowTimes=Array.isArray(sheet.times)&&sheet.times.length===sheet.graduations?.length?sheet.times:TIMES;
+ const rows=rowTimes.map((time,i)=>{
+   const minutes=n(time);
    const g=n(sheet.graduations?.[i]);
    const vol=i>0&&first!==null&&g!==null&&rate!==null&&rate>0?(first-g)*rate:null;
    const valid=vol!==null&&vol>=0&&area!==null;
-   const k=valid?60000*vol/(area*minutes):null;
+   const k=valid&&minutes!==null&&minutes>0?60000*vol/(area*minutes):null;
    return {minutes,graduation:g,volume:valid?vol:null,k,ms:k===null?null:k/3600000};
  });
  const values=rows.slice(1).map(x=>x.k).filter(x=>x!==null);
@@ -74,7 +78,7 @@ function calculate(sheet){
  const graphical=area!==null&&graphicalSlope!==null&&graphicalSlope>=0?graphicalSlope*60000/area:null;
  const hasNegative=rows.some((r,i)=>i>0&&r.graduation!==null&&first!==null&&r.graduation>first);
  return {area,rows,mean,meanMs:mean===null?null:mean/3600000,graphical,graphicalMs:graphical===null?null:graphical/3600000,hasNegative,
-   complete:rows.slice(1).every(x=>x.k!==null)};
+   complete:rows.slice(1).some(x=>x.k!==null)&&rows.slice(1).every(x=>x.minutes===0||x.k!==null)};
 }
 function linkPrivate(st,book){
  if(!st||!Array.isArray(st.porchets))return;
@@ -107,7 +111,8 @@ function linkPrivate(st,book){
  p.mlPerGraduation=n(s.calibration)??"";
  p.graphicalFlowMlMin=n(s.slope)??"";
  const former=Array.isArray(p.readings)?p.readings:[];
- p.readings=TIMES.slice(1).map((time,i)=>({
+ const recordingTimes=Array.isArray(s.times)?s.times:TIMES;
+ p.readings=recordingTimes.slice(1).map((time,i)=>({
    id:former[i]?.id||"porchet_excel_"+tab+"_"+time,
    index:i+1,durationMin:time,graduation:n(s.graduations?.[i+1])??"",
    volumeMl:"",excluded:false,notes:"",startLevelCm:"",endLevelCm:"",waterLevelCm:""
@@ -130,11 +135,13 @@ function shell(book,key){
  const demo=key==="Exemple";
  const s=snapshot(book,key),r=calculate(s);
  const meta=(key==="Exemple"?{}:book.fields||{});
- const metaValue=(f,fall)=>demo?EXAMPLE[f]||fall:meta[f]??fall;
+ const dossier=snapshot(book,key);
+ const metaValue=(f,fall)=>demo?EXAMPLE[f]||fall:dossier[f]||fall;
  const title="Rapport d’essai de perméabilité de type Porchet";
- const inputs=TIMES.map((t,i)=>{
+ const rowTimes=demo?TIMES:(Array.isArray(s.times)?s.times:TIMES);
+ const inputs=rowTimes.map((t,i)=>{
    const out=r.rows[i];
-   return '<tr class="'+(i===0?"px-initial":"")+'"><td class="px-time">'+t+'</td>'+
+   return '<tr class="'+(i===0?"px-initial":"")+'"><td class="px-time"><input type="number" min="0" step="0.1" class="px-time-input" data-px-time="'+i+'" value="'+esc(t)+'" '+(demo?'readonly':'')+' aria-label="Temps relevé '+(i+1)+' (minutes)"></td>'+
      '<td><input aria-label="Graduation à '+t+' minute'+(t>1?"s":"")+'" class="px-input '+(demo?"px-readonly":"px-edit")+
      '" type="text" inputmode="decimal" data-px-grad="'+i+'" value="'+esc(s.graduations?.[i]||"")+'" '+(demo?"readonly":"")+'></td>'+
      '<td>'+format(out.volume,3)+'</td><td>'+format(out.k,3)+'</td><td>'+fmtTiny(out.ms)+'</td></tr>';
@@ -148,11 +155,11 @@ function shell(book,key){
    '<div class="px-tabs">'+nav+'</div>'+
    '<div class="px-paper"><div class="px-top"><h1>'+title+'</h1><span class="px-note">Seules les cases jaunes sont à remplir</span></div>'+
    '<div class="px-meta">'+
-     field("dossier","Dossier",metaValue("dossier",privateState()?.reference||""),{readonly:demo})+
-     field("client","Client",metaValue("client",[privateState()?.owner?.firstName,privateState()?.owner?.lastName].filter(Boolean).join(" ")),{readonly:demo})+
-     field("date","Date",metaValue("date",privateState()?.visit?.studyDate||""),{readonly:demo})+
+     field("dossier","Dossier",metaValue("dossier",privateState()?.reference||""),{readonly:true})+
+     field("client","Client",metaValue("client",[privateState()?.owner?.firstName,privateState()?.owner?.lastName].filter(Boolean).join(" ")),{readonly:true})+
+     field("date","Date",metaValue("date",privateState()?.visit?.studyDate||""),{readonly:true})+
      field("technician","Technicien",metaValue("technician",""),{readonly:demo})+
-     field("commune","Commune",metaValue("commune",privateState()?.parcel?.city||""),{readonly:demo})+
+     field("commune","Commune",metaValue("commune",privateState()?.parcel?.city||""),{readonly:true})+
      field("analyst","Dépouillement",metaValue("analyst",""),{readonly:demo})+
    '</div>'+
    '<div class="px-group"><h2>Dimensions de l’essai</h2><div class="px-metrics">'+
@@ -164,7 +171,7 @@ function shell(book,key){
    '</div></div>'+
    '<div class="px-group"><h2>Relevés de graduation</h2>'+
    '<div class="px-table-scroll"><table class="px-table"><thead><tr><th>T (min)</th><th>Graduation</th><th>V (ml)</th><th>K (mm/h)</th><th>K (m/s)</th></tr></thead><tbody>'+inputs+
-   '<tr class="px-total"><th colspan="3">Retenu (moyenne des K)</th><td data-px-mean>'+format(r.mean,3)+'</td><td>'+fmtTiny(r.meanMs)+'</td></tr></tbody></table></div></div>'+
+   '<tr class="px-total"><th colspan="3">Retenu (moyenne des K)</th><td data-px-mean>'+format(r.mean,3)+'</td><td>'+fmtTiny(r.meanMs)+'</td></tr></tbody></table></div>'+(demo?'':'<button type="button" class="btn secondary" data-px-add="1">+ Ajouter un relevé</button><button type="button" class="btn secondary" data-px-remove="1">Supprimer le dernier relevé</button><p class="small-text">Temps modifiables. Les relevés à 0 min ne produisent pas de division par zéro.</p>')+'</div>'+
    '<div class="px-secondary">'+
      field("soil","Nature du sol",s.soil,{wide:true,readonly:demo})+
      field("calibration","Graduation de 1 mm = … ml",s.calibration,{numeric:true,readonly:demo})+
@@ -182,14 +189,14 @@ function shell(book,key){
    (privateState()?'':'<div class="s4-footer"><span class="s4-save-label">✓ Enregistrement automatique</span><span class="s4-footer-buttons"><button type="button" class="btn secondary" data-demo-nav="sondages">← Précédent</button><button type="button" class="btn primary" data-demo-nav="geometrie">Suivant →</button></span></div>');
 }
 function chart(rows){
- const points=rows.filter(r=>r.volume!==null);
+ const points=rows.filter(r=>r.volume!==null&&r.minutes!==null&&r.minutes>=0);
  if(points.length===0)return '<div class="px-chart-empty">La courbe apparaît dès que les graduations sont renseignées.</div>';
- const maxX=30,maxY=Math.max(1,...points.map(p=>p.volume))*1.15;
+ const maxX=Math.max(1,...points.map(p=>p.minutes||0)),maxY=Math.max(1,...points.map(p=>p.volume))*1.15;
  const plot=p=>[50+p.minutes/maxX*560,235-p.volume/maxY*195];
  const line=points.map((p,i)=>(i?"L":"M")+plot(p).map(x=>x.toFixed(1)).join(",")).join(" ");
  const dots=points.map(p=>{const [x,y]=plot(p);return '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4" fill="#1674dc"/>';}).join("");
  const horizontal=[0,0.25,0.5,0.75,1].map(v=>{const y=235-195*v;return '<line x1="50" x2="610" y1="'+y+'" y2="'+y+'" stroke="#e4ecf5"/><text x="44" y="'+(y+4)+'" text-anchor="end" fill="#6f8198" font-size="11">'+format(maxY*v,0)+'</text>'}).join("");
- const xLabels=[0,5,10,15,20,25,30].map(x=>'<text x="'+(50+x/30*560)+'" y="254" text-anchor="middle" fill="#6f8198" font-size="11">'+x+'</text>').join("");
+ const xLabels=[0,.25,.5,.75,1].map(frac=>{const x=maxX*frac;return '<text x="'+(50+x/maxX*560)+'" y="254" text-anchor="middle" fill="#6f8198" font-size="11">'+x+'</text>'}).join("");
  return '<div class="px-chart"><svg viewBox="0 0 650 287" role="img" aria-label="Méthode graphique : volume infiltré (ml) selon le temps (min)">'+
    horizontal+'<path d="'+line+'" fill="none" stroke="#1575e2" stroke-width="3" stroke-linejoin="round"/>'+dots+xLabels+
    '<text x="330" y="280" fill="#566d8c" text-anchor="middle" font-size="12">Temps (min)</text>'+
@@ -222,14 +229,16 @@ function applyInput(input){
  if(key==="Exemple")return;
  if(!book.sheets[key])book.sheets[key]=empty();
  const gradIndex=input.dataset.pxGrad;
+ const timeIndex=input.dataset.pxTime;
  const field=input.dataset.pxField;
  if(gradIndex!==undefined){book.sheets[key].graduations[Number(gradIndex)]=input.value;}
+ else if(input.dataset.pxTime!==undefined){book.sheets[key].times=book.sheets[key].times||TIMES.slice();book.sheets[key].times[Number(input.dataset.pxTime)]=input.value;}
  else if(field){
    if(["dossier","client","date","technician","commune","analyst"].includes(field)){
      book.fields=book.fields||{};book.fields[field]=input.value;
    }else book.sheets[key][field]=input.value;
  }
- const y=window.scrollY,focusKey=field?"[data-px-field='"+field+"']":"[data-px-grad='"+gradIndex+"']";
+ const y=window.scrollY,focusKey=timeIndex!==undefined?"[data-px-time='"+timeIndex+"']":field?"[data-px-field='"+field+"']":"[data-px-grad='"+gradIndex+"']";
  const selection={start:input.selectionStart,end:input.selectionEnd};
  const ok=writeBook(book);
  draw();
@@ -241,11 +250,20 @@ function applyInput(input){
 }
 document.addEventListener("input",event=>{
  const t=event.target;
- if(t instanceof HTMLInputElement&&t.closest("#porchet")&&(t.dataset.pxField||t.dataset.pxGrad!==undefined)){
+ if(t instanceof HTMLInputElement&&t.closest("#porchet")&&(t.dataset.pxField||t.dataset.pxGrad!==undefined||t.dataset.pxTime!==undefined)){
    event.stopImmediatePropagation();applyInput(t);
  }
 },true);
 document.addEventListener("click",event=>{
+ const control=event.target.closest("[data-px-add],[data-px-remove]");
+ if(control){
+   event.stopImmediatePropagation();event.preventDefault();
+   const book=getBook(),key=book.active,s=book.sheets[key];if(!s||key==="Exemple")return;
+   s.times=Array.isArray(s.times)?s.times:TIMES.slice();
+   if(control.dataset.pxAdd!==undefined){s.times.push(String(Number(s.times[s.times.length-1]||0)+1));s.graduations.push("");}
+   else if(s.times.length>2){s.times.pop();s.graduations.pop();}
+   writeBook(book);draw();return;
+ }
  const t=event.target.closest("[data-px-tab]");
  if(!t)return;
  event.stopImmediatePropagation();event.preventDefault();
