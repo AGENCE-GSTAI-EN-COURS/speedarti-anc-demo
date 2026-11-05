@@ -144,9 +144,9 @@ function addBorehole(clicked,copy=false){
   const clone=src.cloneNode(true);
   reindex(clone,newBi,oldBi,null,null);
   if(!copy){
-    const horizons=$(".horizon",clone);
+    const horizons=$$(".horizon",clone);
     horizons.slice(1).forEach(x=>x.remove());
-    $("input,textarea,select",clone).forEach(input=>{
+    $$("input,textarea,select",clone).forEach(input=>{
       if(input.matches('input[type="checkbox"],input[type="radio"]'))input.checked=false;
       else if(input.tagName==="SELECT")input.selectedIndex=0;
       else input.value="";
@@ -181,7 +181,7 @@ function addHorizon(button,duplicate=false){
     const dup=document.createElement("button");dup.type="button";dup.className="icon-btn";dup.dataset.demoDuplicateHorizon="1";dup.dataset.bi=String(bi);dup.dataset.hi=String(newHi);dup.textContent="⧉";dup.title="Dupliquer cet horizon";
     del.before(dup);
   }
-  if(!duplicate){$("input,textarea",clone).forEach(input=>{if(input.type!=="checkbox")input.value="";});if(from)from.value=String(last);if(to)to.value=String(last+depth);}
+  if(!duplicate){$$("input,textarea",clone).forEach(input=>{if(input.type!=="checkbox")input.value="";});if(from)from.value=String(last);if(to)to.value=String(last+depth);}
   horizons[horizons.length-1].after(clone);queueSave();
   text("Horizon dupliqué — profondeurs à vérifier sur le terrain.");
 }
