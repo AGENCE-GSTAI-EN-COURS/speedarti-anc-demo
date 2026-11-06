@@ -6,7 +6,7 @@
 "use strict";
 let map=null,marker=null,parcelLayer=null,pickerMarker=null,pickerMode=false;
 let activeSection=null,activeStudyId=null,activeView="implantation",activeBase="aerial";
-let mapLayers={},activeOverlays=new Set(),activeOpacity={},layerErrors=new Set();
+let mapLayers={},activeOverlays=new Set(),activeOpacity={},layerErrors=new Set(),syncingLayers=false;
 const IGN="https://data.geopf.fr/wms-r/wms";
 const BRGM_GEO="https://geoservices.brgm.fr/geologie";
 const BRGM_RISKS="https://geoservices.brgm.fr/risques";
@@ -128,6 +128,7 @@ function displayControls(){
 }
 function showCurrentLayers(){
  if(!map)return;
+ syncingLayers=true;
  for(const layer of Object.values(mapLayers))if(map.hasLayer(layer))map.removeLayer(layer);
  (mapLayers[activeBase]||mapLayers.osm)?.addTo(map);
  for(const id of activeOverlays){
@@ -141,6 +142,7 @@ function showCurrentLayers(){
  if(marker&&!map.hasLayer(marker))marker.addTo(map);
  if(pickerMarker&&!map.hasLayer(pickerMarker))pickerMarker.addTo(map);
  map.__ancView=activeView;
+ syncingLayers=false;
  displayControls();
 }
 function selectView(view,{rememberState=true}={}){
@@ -232,6 +234,26 @@ function mount(section){
    map=L.map(canvas,{zoomControl:true,scrollWheelZoom:false}).setView(center,zoom);
    map.on("click",event=>{if(pickerMode)previewPoint(event.latlng.lat,event.latlng.lng);});
    configureLayers();restoreView();
+   // Conserver aussi le sélecteur Leaflet historique : replié pour ne pas gêner
+   // le doigt sur mobile, et synchronisé avec le nouveau panneau ANC.
+   const baseChoices={"OpenStreetMap":mapLayers.osm,"Plan IGN":mapLayers.plan,
+     "Orthophoto IGN":mapLayers.aerial};
+   const overlayChoices=Object.fromEntries(overlayDefs.map(d=>[d.label,mapLayers[d.id]]));
+   L.control.layers(baseChoices,overlayChoices,{collapsed:true,position:"topright"}).addTo(map);
+   map.on("baselayerchange",e=>{
+     if(syncingLayers)return;
+     const selected=baseDefs.find(d=>mapLayers[d.id]===e.layer);
+     if(selected){activeBase=selected.id;displayControls();remember();}
+   });
+   map.on("overlayadd overlayremove",e=>{
+     if(syncingLayers)return;
+     const selected=overlayDefs.find(d=>mapLayers[d.id]===e.layer);
+     if(selected){
+       if(e.type==="overlayadd")activeOverlays.add(selected.id);
+       else activeOverlays.delete(selected.id);
+       displayControls();remember();
+     }
+   });
    L.control.scale({metric:true,imperial:false,position:"bottomleft"}).addTo(map);
    if(coords){
      marker=L.marker(coords,{draggable:false}).addTo(map).bindPopup("Position du chantier — à confirmer");
