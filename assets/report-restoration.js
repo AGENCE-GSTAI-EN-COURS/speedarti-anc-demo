@@ -159,7 +159,11 @@ function build(st){
     ["Parcelles",parcels.map(p=>[p.section,p.number].filter(Boolean).join(" ")).join(", ")],
     ["Surface totale (m²)",value(f,"parcel.totalArea")],["Surface disponible ANC (m²)",value(f,"parcel.availableArea")],
     ["Altitude (m)",value(f,"parcel.altitude")],["Nombre sondages",surveys.length],["Nombre essais Porchet",tests.length],
-    ["Nombre vues cartographiques",maps.length],["Filière validée",value(f,"solution.type")]])+
+    ["Nombre vues cartographiques",maps.length],["Filière validée",value(f,"solution.type")],
+    ["Tranchées du schéma local (m)",st.plan?.points?.length>1?st.plan.points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-st.plan.points[i].x,p.y-st.plan.points[i].y),0).toFixed(2)+" m":"" ]])+
+   '<h2>Sondages du dossier</h2>'+tab(["Sondage","Profondeur"],surveys.map(s=>[s.name,s.depth?s.depth+" cm":""]))+
+   '<h2>Résultats Porchet provisoires</h2>'+tab(["Essai","K moyen (mm/h)"],tests.map(t=>[t.key,Number.isFinite(Number(t.result?.mean))?Number(t.result.mean).toFixed(3):""]))+
+   '<p><b>VALIDATION PROFESSIONNELLE OBLIGATOIRE</b></p>'+
    '<p>Cette synthèse est destinée à la vérification et à la validation du dossier par le bureau d’études.</p>'));
  const mapGroups=[["situation","Annexe 1 — Carte de situation"],
   ["cadastre","Annexe 2 — Plan cadastral et localisation"],
@@ -205,7 +209,7 @@ function build(st){
 }
 function pageMarkup(ch,i,total,meta){
  const tag=ch.kind==="cover"?"Page de garde":ch.id.startsWith("map-")?"Annexe cartographique":ch.id.startsWith("sondage-")?"Fiche terrain":"Étude ANC";
- return '<section class="a4 anc-generated-page anc-rebuild-page" data-anc-chapter="'+esc(ch.id)+'">'+
+ return '<section class="a4 anc-generated-page anc-rebuild-page" '+(ch.id==="synthese"?'id="axis-report-page" ':'')+'data-anc-chapter="'+esc(ch.id)+'">'+
    '<div class="page-head"><span>'+esc(meta.office)+'</span><span>'+esc(meta.ref)+'</span><span>'+String(i+1)+' / '+total+'</span></div>'+
    '<div class="anc-page-body"><div class="anc-report-chapter-tag">'+tag+'</div>'+
    '<h1>'+esc(ch.title)+'</h1>'+ch.content+'</div>'+
