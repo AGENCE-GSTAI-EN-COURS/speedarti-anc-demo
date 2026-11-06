@@ -50,3 +50,37 @@
  #rapport #report-pages>.a4:last-child{page-break-after:auto;break-after:auto}
  #rapport .anc-rebuild-page>.anc-page-body{overflow:visible}
 }
+
+
+/* Cartographie ANC : 14 vues + filtres superposables + état de sauvegarde. */
+#geometrie .anc-real-map-card .card-body{display:grid;gap:12px}
+#geometrie .anc-map-presets{display:flex;gap:7px;flex-wrap:wrap}
+#geometrie .anc-map-presets [data-anc-map-view]{white-space:normal;text-align:center;min-height:36px;line-height:1.2;padding:8px 10px}
+#geometrie .anc-map-layers-detail{border:1px solid #cbdeeb;background:#f7fbff;border-radius:11px;padding:12px 14px}
+#geometrie .anc-map-layers-detail>summary{cursor:pointer;color:#18518b;margin-bottom:9px}
+#geometrie .anc-map-filter-area{display:grid;grid-template-columns:minmax(170px,240px) minmax(0,1fr);gap:14px}
+#geometrie .anc-map-filter-list{display:grid;gap:8px}
+#geometrie .anc-map-filter-line{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,220px);align-items:center;gap:8px;padding:7px 9px;border:1px solid #dbe8ef;background:#fff;border-radius:7px}
+#geometrie .anc-map-filter-line>label{font-size:12px;display:flex;align-items:center;gap:7px;line-height:1.35}
+#geometrie .anc-map-filter-line input[type=checkbox]{accent-color:#146ac0;min-width:16px;min-height:16px}
+#geometrie .anc-map-opacity-label{color:#50677b;display:flex;align-items:center}
+#geometrie .anc-map-opacity-label input{width:100%;max-width:110px;accent-color:#176ab5}
+#geometrie .anc-map-opacity-label output{min-width:40px;text-align:right;font-variant-numeric:tabular-nums}
+#geometrie .anc-map-view-note{font-size:12px;color:#556f83;margin:0;background:#eff6fb;padding:9px;border-left:3px solid #5692bb}
+#geometrie .anc-map-save-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:#f0f8f3;border:1px solid #cce4d3;padding:12px;border-radius:9px}
+#geometrie #anc-map-save-result{font-size:12px;flex:1;min-width:190px;color:#336c4b}
+#geometrie #anc-map-save-result[data-status=error]{color:#9e3729;font-weight:750}
+#geometrie #anc-map-save-result[data-status=success]{font-weight:750}
+#cartes .anc-saved-map-details{display:grid;grid-template-columns:minmax(80px,110px) minmax(0,1fr);gap:5px 10px;font-size:12px;line-height:1.5}
+#cartes .anc-saved-map-details dt{font-weight:750;color:#315577}
+#cartes .anc-saved-map-details dd{margin:0;overflow-wrap:anywhere}
+#cartes .anc-map-card-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 4px}
+#cartes .anc-saved-map-card{display:flex;flex-direction:column;gap:8px}
+#cartes .anc-saved-map-card .anc-source-note{font-size:11px;color:#607587}
+@media(max-width:760px){
+ #geometrie .anc-map-filter-area{grid-template-columns:1fr}
+ #geometrie .anc-map-filter-line{grid-template-columns:1fr}
+ #geometrie .anc-map-opacity-label{justify-content:flex-start}
+ #geometrie .anc-map-presets [data-anc-map-view]{flex:1 1 145px}
+ #geometrie .anc-map-save-bar .btn{flex:1 1 100%}
+}
