@@ -120,3 +120,17 @@ test("Annexe rapport : composition de risque sauvegardée puis reprise comme ann
  await expect(page.locator('#report-pages [data-anc-chapter="map-groundwater"]')).toContainText("nappe-sedim");
  await expect(page.locator('#report-pages [data-anc-chapter="map-groundwater"]')).toContainText("cadrage");
 });
+
+
+test("Résilience : une erreur cadastrale n'empêche plus l'affichage du panneau terrain ANC",async({page})=>{
+ await page.goto("/#dossier");
+ await expect(page.locator("#anc-available-estimator summary")).toBeVisible();
+ await page.evaluate(()=>{
+   window.ANCGeoParcel.mount=()=>{throw Error("Défaillance injectée dans le module cartographique");};
+ });
+ await page.locator('#public-tabs [data-tab="terrain"]').click();
+ await page.locator('#public-tabs [data-tab="dossier"]').click();
+ await expect(page.locator("#anc-available-estimator summary")).toBeVisible({timeout:12000});
+ const error=await page.evaluate(()=>window.__ancMountError);
+ expect(error?.message).toContain("Défaillance injectée");
+});
