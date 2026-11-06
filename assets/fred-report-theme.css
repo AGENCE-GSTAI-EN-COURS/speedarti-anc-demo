@@ -13,48 +13,48 @@
 }
 #rapport .anc-report-toolbar .anc-report-photo-label input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 #rapport .anc-report-toolbar .anc-report-photo-label:focus-within{outline:2px solid #2488cb}
-#rapport .anc-rebuild-page{
+#rapport #report-pages>.anc-rebuild-page{
  --anc-fred-green:#79b546;--anc-fred-green-dark:#4c8526;
  --anc-fred-green-pale:#e7f7d5;--anc-fred-violet:#9646a8;
  font-family:Arial,Helvetica,sans-serif;color:#262c32;padding:16mm 17mm 18mm;
 }
-#rapport .anc-rebuild-page>.anc-page-body{padding-top:3mm;max-height:260mm;overflow:hidden}
-#rapport .anc-rebuild-page .anc-report-chapter-tag{font-size:8pt;color:#739c53;letter-spacing:.08em}
-#rapport .anc-rebuild-page h1{font-size:16pt;line-height:1.28;color:var(--anc-fred-green-dark);font-weight:700;margin:0 0 7mm}
-#rapport .anc-rebuild-page h2{font-size:11pt;color:var(--anc-fred-violet);font-weight:750;margin:7mm 0 4mm;text-transform:uppercase}
-#rapport .anc-rebuild-page p,#rapport .anc-rebuild-page li{font-size:9pt;line-height:1.5;color:#28323c}
-#rapport .anc-rebuild-page table{
+#rapport #report-pages>.anc-rebuild-page>.anc-page-body{padding-top:3mm;max-height:260mm;overflow:hidden}
+#rapport #report-pages>.anc-rebuild-page .anc-report-chapter-tag{font-size:8pt;color:#739c53;letter-spacing:.08em}
+#rapport #report-pages>.anc-rebuild-page h1{font-size:16pt;line-height:1.28;color:var(--anc-fred-green-dark);font-weight:700;margin:0 0 7mm}
+#rapport #report-pages>.anc-rebuild-page h2{font-size:11pt;color:var(--anc-fred-violet);font-weight:750;margin:7mm 0 4mm;text-transform:uppercase}
+#rapport #report-pages>.anc-rebuild-page p,#rapport #report-pages>.anc-rebuild-page li{font-size:9pt;line-height:1.5;color:#28323c}
+#rapport #report-pages>.anc-rebuild-page table{
  border-collapse:collapse;width:100%;margin:5mm 0;font-size:8.5pt;table-layout:auto
 }
-#rapport .anc-rebuild-page .anc-report-kv th{
+#rapport #report-pages>.anc-rebuild-page .anc-report-kv th{
  width:37%;background:#dff1cb;color:#28392a;font-weight:750
 }
-#rapport .anc-rebuild-page .anc-report-kv thead th{
+#rapport #report-pages>.anc-rebuild-page .anc-report-kv thead th{
  background:#8fd058;color:#1c351c;font-size:8.5pt;font-weight:800;text-align:center
 }
-#rapport .anc-rebuild-page .anc-report-kv td{
+#rapport #report-pages>.anc-rebuild-page .anc-report-kv td{
  color:#253043;overflow-wrap:anywhere
 }
-#rapport .anc-rebuild-page .anc-report-kv tbody tr:nth-child(even) td{background:#f7fbf3}
-#rapport .anc-rebuild-page .anc-report-kv th,
-#rapport .anc-rebuild-page .anc-report-kv td{padding:7px 8px;border:1px solid #b5cda5}
-#rapport .anc-rebuild-page>.page-head{
+#rapport #report-pages>.anc-rebuild-page .anc-report-kv tbody tr:nth-child(even) td{background:#f7fbf3}
+#rapport #report-pages>.anc-rebuild-page .anc-report-kv th,
+#rapport #report-pages>.anc-rebuild-page .anc-report-kv td{padding:7px 8px;border:1px solid #b5cda5}
+#rapport #report-pages>.anc-rebuild-page>.page-head{
  position:absolute;left:17mm;right:17mm;top:7mm;
  font-size:7pt;color:#91b777
 }
-#rapport .anc-rebuild-page>.page-foot{
+#rapport #report-pages>.anc-rebuild-page>.page-foot{
  left:17mm;right:17mm;bottom:6mm;border-top:1px solid #dfead3;
  color:#86ae63;font-size:7pt;line-height:1.3
 }
-#rapport .anc-rebuild-page .anc-report-notice{background:#fffdf6;border:1px solid #e7d8b3;border-left:4px solid #b7924c;color:#795c2d}
-#rapport .anc-rebuild-page .anc-report-proof{background:#f4faee;border:1px solid #cadfb9;color:#496f38}
+#rapport #report-pages>.anc-rebuild-page .anc-report-notice{background:#fffdf6;border:1px solid #e7d8b3;border-left:4px solid #b7924c;color:#795c2d}
+#rapport #report-pages>.anc-rebuild-page .anc-report-proof{background:#f4faee;border:1px solid #cadfb9;color:#496f38}
 
 /* Couverture : géométrie proche du document de Fred, identité du bureau paramétrable. */
-#rapport .anc-rebuild-page[data-anc-chapter="couverture"]{padding:17mm 15mm 17mm}
-#rapport .anc-rebuild-page[data-anc-chapter="couverture"]>.page-head{display:none}
-#rapport .anc-rebuild-page[data-anc-chapter="couverture"]>.anc-page-body{max-height:265mm;padding:0}
-#rapport .anc-rebuild-page[data-anc-chapter="couverture"] .anc-report-chapter-tag{display:none}
-#rapport .anc-rebuild-page[data-anc-chapter="couverture"]>.anc-page-body>h1{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="couverture"]{padding:17mm 15mm 17mm}
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="couverture"]>.page-head{display:none}
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="couverture"]>.anc-page-body{max-height:265mm;padding:0}
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="couverture"] .anc-report-chapter-tag{display:none}
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="couverture"]>.anc-page-body>h1{
  color:#151c24;font-weight:500;text-transform:uppercase;text-align:center;
  letter-spacing:.02em;font-size:21pt;line-height:1.12;
  padding:10mm 0 7mm;margin:0 0 9mm;
@@ -95,22 +95,22 @@
 #rapport .anc-fred-cover-parcel .cadastral-label{color:var(--anc-fred-violet)}
 #rapport .anc-fred-cover-subtitle{text-align:center;font-size:10pt;color:var(--anc-fred-green-dark);margin:7mm 0 0;letter-spacing:.03em}
 #rapport .anc-fred-cover-caution{margin-top:5mm;font-size:8pt}
-#rapport .anc-rebuild-page[data-anc-chapter="couverture"]>.page-foot{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="couverture"]>.page-foot{
  justify-content:center;border-top:1px solid #e3edda;font-size:7pt
 }
 
 /* Sommaire de Fred : bande verte pleine page et panneau blanc centré. */
-#rapport .anc-rebuild-page[data-anc-chapter="sommaire"]{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="sommaire"]{
  background:#9bdd65;padding:10mm 12mm 12mm
 }
-#rapport .anc-rebuild-page[data-anc-chapter="sommaire"]>.page-head,
-#rapport .anc-rebuild-page[data-anc-chapter="sommaire"]>.page-foot{color:#fff}
-#rapport .anc-rebuild-page[data-anc-chapter="sommaire"]>.anc-page-body{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="sommaire"]>.page-head,
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="sommaire"]>.page-foot{color:#fff}
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="sommaire"]>.anc-page-body{
  background:#fff;padding:12mm 12mm 10mm;margin-top:18mm;
  min-height:210mm;max-height:255mm
 }
-#rapport .anc-rebuild-page[data-anc-chapter="sommaire"] .anc-report-chapter-tag{display:none}
-#rapport .anc-rebuild-page[data-anc-chapter="sommaire"] h1{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="sommaire"] .anc-report-chapter-tag{display:none}
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter="sommaire"] h1{
  text-align:center;color:#5e9834;font-size:24pt;margin-bottom:13mm
 }
 #rapport .anc-fred-toc{display:grid;gap:0}
@@ -128,21 +128,21 @@
 #rapport .anc-fred-toc-row.major{margin-top:3px}
 
 /* Annexes : grande carte, source apparente, ne jamais confondre live et capture archivée. */
-#rapport .anc-rebuild-page[data-anc-chapter^="map-"] .anc-page-body{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter^="map-"] .anc-page-body{
  display:flex;flex-direction:column;gap:5mm
 }
-#rapport .anc-rebuild-page[data-anc-chapter^="map-"] img{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter^="map-"] img{
  max-width:100%!important;max-height:155mm!important;object-fit:contain;
  border:1px solid #d1e2c7
 }
-#rapport .anc-rebuild-page[data-anc-chapter^="map-"] h1{
+#rapport #report-pages>.anc-rebuild-page[data-anc-chapter^="map-"] h1{
  border-bottom:2px solid #90c86b;padding-bottom:4mm
 }
 @media print{
- #rapport .anc-rebuild-page{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
- #rapport .anc-rebuild-page[data-anc-chapter="sommaire"]{
+ #rapport #report-pages>.anc-rebuild-page{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
+ #rapport #report-pages>.anc-rebuild-page[data-anc-chapter="sommaire"]{
    background:#9bdd65!important
  }
- #rapport .anc-rebuild-page[data-anc-chapter="couverture"] .anc-fred-cover-photo{height:85mm}
- #rapport .anc-rebuild-page>.anc-page-body{max-height:none;overflow:visible}
+ #rapport #report-pages>.anc-rebuild-page[data-anc-chapter="couverture"] .anc-fred-cover-photo{height:85mm}
+ #rapport #report-pages>.anc-rebuild-page>.anc-page-body{max-height:none;overflow:visible}
 }
