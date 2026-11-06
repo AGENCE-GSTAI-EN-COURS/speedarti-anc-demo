@@ -18,7 +18,7 @@ test("Présentation Fred : couverture lisible, titre double ligne, photo, tablea
  await expect(toc.locator(".anc-fred-toc-row").first()).toBeVisible();
  expect(await toc.locator(".anc-fred-toc-row").count()).toBeGreaterThanOrEqual(29);
  expect(await toc.evaluate(el=>getComputedStyle(el).backgroundColor)).toBe("rgb(155, 221, 101)");
- await expect(page.locator('#report-pages [data-anc-chapter="parcelles"] table')).toBeVisible();
+ await expect(page.locator('#report-pages [data-anc-chapter="parcelles"] table').first()).toBeVisible();
  const firstHeader=page.locator('#report-pages [data-anc-chapter="parcelles"] th').first();
  const bg=await firstHeader.evaluate(el=>getComputedStyle(el).backgroundColor);
  expect(bg).not.toBe("rgba(0, 0, 0, 0)");
