@@ -24,7 +24,7 @@ jobs:
       - name: Installer les tests
         run: npm install --no-audit --no-fund
       - name: Installer Chromium
-        run: npx playwright install --with-deps --only-shell chromium
+        run: npx playwright install --only-shell chromium
       - name: Démarrage Dossier et diagnostic des erreurs
         run: npx playwright test qa/anc-runtime-invariant.spec.mjs --project=desktop --reporter=line
       - name: Recette desktop et mobile
