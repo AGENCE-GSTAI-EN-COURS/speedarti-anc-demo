@@ -14,7 +14,7 @@
 .s4-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;border:1px solid #d4e4f1;border-radius:12px;background:#fff;padding:16px 18px;margin-top:22px}.s4-save-label{font-size:11px;color:#266d56;font-weight:800}.s4-footer-buttons{display:flex;gap:10px;margin-left:auto}.s4-slope-comparator{margin-top:7px!important}.s4-afes-help button{margin-left:8px}.s4-equipment{margin:12px 0}.s4-equipment .anc-v3-body{display:grid;gap:10px}.s4-equipment label{font-size:11px;font-weight:700;color:#365777}.s4-equipment-list{display:grid;gap:9px}.s4-preset{border:1px solid #dce8f3;background:#f5faff;display:flex;align-items:center;flex-wrap:wrap;gap:12px;padding:9px;border-radius:9px}.s4-preset img{width:60px;height:55px;object-fit:cover;border-radius:7px}.s4-preset span{flex:1}.s4-simulation-note{margin-top:12px}.public-example-annotation{margin:10px 0}.s4-photo-sample{max-width:480px;margin:12px 0}@media(max-width:700px){.s4-footer-buttons{width:100%;justify-content:space-between}.s4-preset span{min-width:120px}}
 
 /* Parcours vraiment relié entre écrans : dossiers et clients */
-.live-study-list,.live-client-list{display:grid;gap:10px}.live-study-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border:1px solid #deebf4;border-radius:10px;background:#f9fcff}.live-study-row>div:first-child{display:grid;gap:5px}.live-study-row strong{color:#214768}.live-study-row small{color:#758da3}.live-client-create{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:18px}.live-client-create label{display:grid;gap:5px;font-size:11px;font-weight:800;flex:1;min-width:150px}.live-original-list{display:none!important}#rapport #report-pages> :not(#axis-report-page){display:none!important}#rapport #axis-report-page{display:block!important;background:white!important;min-height:700px}#rapport #axis-report-page table{width:100%;margin:14px 0}#rapport #axis-report-page td,#rapport #axis-report-page th{padding:10px;border-bottom:1px solid #e3edf4}#rapport #axis-report-page h2{font-size:17px;margin-top:24px;color:#214e7e}@media(max-width:680px){.live-study-row{align-items:flex-start;flex-direction:column}.live-study-row>div:last-child{display:flex;gap:5px;flex-wrap:wrap}}
+.live-study-list,.live-client-list{display:grid;gap:10px}.live-study-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 15px;border:1px solid #deebf4;border-radius:10px;background:#f9fcff}.live-study-row>div:first-child{display:grid;gap:5px}.live-study-row strong{color:#214768}.live-study-row small{color:#758da3}.live-client-create{display:flex;align-items:end;gap:12px;flex-wrap:wrap;margin-bottom:18px}.live-client-create label{display:grid;gap:5px;font-size:11px;font-weight:800;flex:1;min-width:150px}.live-original-list{display:none!important}#rapport #report-pages>.a4{display:block!important;background:white;min-height:297mm}#rapport #report-pages table{width:100%;margin:14px 0;border-collapse:collapse}#rapport #report-pages th,#rapport #report-pages td{padding:8px;border:1px solid #e3edf4;text-align:left;vertical-align:top;font-size:9pt}#rapport #report-pages h2{font-size:12pt;margin-top:16px;color:#214e7e}@media(max-width:680px){.live-study-row{align-items:flex-start;flex-direction:column}.live-study-row>div:last-child{display:flex;gap:5px;flex-wrap:wrap}}
 
 /* Éditeur métrique local réellement utilisable — non géoréférencé */
 #live-plan{margin:14px 0 20px}
@@ -24,3 +24,29 @@
 .live-plan-summary{background:#eff7fd;color:#2e607e;border:1px solid #daebf6;border-radius:9px;padding:12px 14px;font-size:12px;font-weight:750;margin-top:11px}
 
 .live-control-panel{margin:16px 0}.live-check-row{display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #dfebf5;background:#fbfdff}.live-check-row>span:first-child{font-weight:850;color:#1268ab;font-size:16px}.live-check-row>div{display:grid;gap:3px;flex:1}.live-check-row strong{color:#203f5c}.live-check-row small{font-size:11px;color:#667c91}.live-check-row>b:last-child{font-size:10px;color:#536d83}.live-control-panel .anc-v3-body{padding:16px}#automatisation .auto-flow[hidden],#automatisation .automation-grid[hidden],#tests .stats[hidden]{display:none!important}
+
+/* Restitution du rapport intégral : une page A4 par feuille, sans masquage. */
+#rapport .anc-report-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#f4f9fd;border:1px solid #cfdfec;border-radius:12px;padding:14px;margin-bottom:14px}
+#rapport .anc-report-toolbar .btn[aria-pressed="true"]{background:#155c9e;color:white}
+#rapport .anc-report-summary{font-weight:750;color:#264969}
+#rapport #report-pages{display:grid;gap:20px;justify-content:center;align-items:start}
+#rapport .anc-rebuild-page{box-sizing:border-box;overflow:hidden;position:relative;padding:18mm 17mm 20mm}
+#rapport .anc-rebuild-page>.anc-page-body{padding-top:7mm;max-height:249mm;overflow:hidden}
+#rapport .anc-rebuild-page h1{font-size:18pt;line-height:1.2}
+#rapport .anc-report-kv{width:100%;border-collapse:collapse;margin:4mm 0}
+#rapport .anc-report-kv th{width:40%;background:#f2f7fc;color:#284966}
+#rapport .anc-report-notice{padding:11px 13px;border:1px solid #e5ca7f;background:#fff9e8;color:#7b561c;font-size:9pt;line-height:1.4;border-radius:5px}
+#rapport .anc-blank{color:#805f2c;font-style:italic}
+#rapport .anc-report-chapter-tag{font-size:8pt;letter-spacing:.08em;text-transform:uppercase;color:#176cb6;margin-bottom:13px;font-weight:800}
+#rapport .anc-report-proof{padding:8px;background:#f0f8fe;border:1px solid #d6e8f5;font-size:8pt;color:#3a617b}
+#rapport .anc-report-doc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+#rapport .anc-report-doc-grid>div{border:1px solid #e3ebf3;padding:10px}
+#rapport .anc-report-model-watermark{position:absolute;top:6mm;right:7mm;z-index:2;font-weight:900;color:#a33b29;font-size:8pt;letter-spacing:.05em;background:#fff1ef;padding:6px}
+@media print{
+ @page{size:A4;margin:0}
+ #rapport .anc-report-toolbar,#rapport .anc-report-summary{display:none!important}
+ #rapport #report-pages{display:block!important;margin:0!important;padding:0!important}
+ #rapport #report-pages>.a4{display:block!important;page-break-after:always;break-after:page;box-shadow:none!important;margin:0!important;min-height:297mm!important}
+ #rapport #report-pages>.a4:last-child{page-break-after:auto;break-after:auto}
+ #rapport .anc-rebuild-page>.anc-page-body{overflow:visible}
+}
