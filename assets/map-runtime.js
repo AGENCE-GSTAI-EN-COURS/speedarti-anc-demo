@@ -260,6 +260,8 @@ function mount(section){
      marker.on("dragend",()=>{if(pickerMode){const p=marker.getLatLng();previewPoint(p.lat,p.lng);}});
    }
    if(study()?.cadastralGeometry)showParcel(study().cadastralGeometry);
+   // La géométrie cadastrale peut recentrer la carte ; restaurer ensuite le cadrage sauvegardé.
+   if(savedCenter)map.setView(savedCenter,zoom,{animate:false});
    status(coords?"Carte active : choisissez vos filtres, puis enregistrez votre composition.":"Localisez votre dossier ou déplacez la carte vers le site avant d'enregistrer.");
    setTimeout(()=>{if(map)map.invalidateSize();},100);
  });
