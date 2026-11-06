@@ -77,7 +77,8 @@ function handle(event){
    window.ANCRealWorkflow?.mutateStudy?.(st=>{
      if(st.id!==s.id)return;
      st.mapView={...(st.mapView||{}),activeKind:saved.kind,
-       base:saved.base||"aerial",overlays:saved.overlays||[],opacity:saved.opacity||{}};
+       base:saved.base||"aerial",overlays:saved.overlays||[],opacity:saved.opacity||{},
+       center:saved.center,zoom:saved.zoom,bounds:saved.bounds};
    });
    window.ANCPublicNavigate?.("geometrie");
    return true;
