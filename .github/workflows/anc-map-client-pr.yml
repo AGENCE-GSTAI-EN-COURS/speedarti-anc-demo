@@ -20,10 +20,11 @@ jobs:
           node --check assets/geo-parcel.js
           node --check assets/terrain-enrichment.js
           node --check assets/map-runtime.js
+          node --check assets/report-restoration.js
       - name: Installer les tests
         run: npm install --no-audit --no-fund
       - name: Installer Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps --only-shell chromium
       - name: Démarrage Dossier et diagnostic des erreurs
         run: npx playwright test qa/anc-runtime-invariant.spec.mjs --project=desktop --reporter=line
       - name: Recette desktop et mobile
