@@ -46,8 +46,8 @@ test("Terrain : météo officielle simulée avec source, sans inventer résultat
 });
 test("Rapport : plusieurs pages sans page de synthèse isolée",async({page})=>{
  await page.goto("/#rapport");
- await expect(page.locator("#report-pages > section")).toHaveCount(9);
- await expect(page.locator("#report-pages > section").first()).toContainText("Rapport d’étude de conception ANC");
+ expect(await page.locator("#report-pages > section").count()).toBeGreaterThanOrEqual(24);
+ await expect(page.locator("#report-pages > section").first()).toContainText("RAPPORT D’ÉTUDE DE CONCEPTION");
  await expect(page.locator("#axis-report-page")).toContainText("VALIDATION PROFESSIONNELLE OBLIGATOIRE");
 });
 test("Cartes dossier : vues absentes ne sont pas présentées comme validées",async({page})=>{
