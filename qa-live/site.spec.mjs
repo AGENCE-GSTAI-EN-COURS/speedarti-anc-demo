@@ -61,3 +61,28 @@ test("Site GitHub Pages — le modèle Fred est VRAIMENT publié et visible avec
  const cssLoaded=await page.evaluate(()=>Array.from(document.styleSheets).some(s=>s.href?.includes("fred-report-theme.css")));
  expect(cssLoaded).toBe(true);
 });
+
+
+test("Site publié ANC — 14 vues, filtres BRGM et enregistrement de composition avec réouverture",async({page,request})=>{
+ const asset=await request.get("assets/map-runtime.js");
+ expect(asset.status()).toBe(200);
+ expect(await asset.text()).toContain("anc-map-filter-list");
+ await page.goto("?build=20261106-maplayers#dossier");
+ await page.locator('#anc-dossier-client-actions [data-live-action="new-study"]').click();
+ await page.locator("details.geo-advanced summary").click();
+ await page.locator('[data-path="parcel.lat"]').fill("44.02");
+ await page.locator('[data-path="parcel.lng"]').fill("1.35");
+ await page.locator('#public-tabs [data-tab="geometrie"]').click();
+ await expect(page.locator(".anc-real-map-card .leaflet-container")).toBeVisible({timeout:20000});
+ await expect(page.locator("#geometrie .anc-map-presets [data-anc-map-view]")).toHaveCount(14);
+ await expect(page.locator("#geometrie [data-anc-overlay]")).toHaveCount(7);
+ await page.locator('[data-anc-map-view="groundwater"]').first().click();
+ await page.locator('[data-anc-map-save]').click();
+ await expect(page.locator("#anc-map-save-result")).toContainText("enregistré");
+ await page.locator('[data-anc-map-open-gallery]').click();
+ await expect(page.locator("#anc-gallery-count")).toContainText("1 composition");
+ await page.reload();
+ await expect(page.locator("#anc-live-map-gallery")).toContainText("Remontée de nappe");
+ await page.locator('[data-anc-reopen-map]').first().click();
+ await expect(page.locator('[data-anc-map-view="groundwater"]')).toHaveAttribute("aria-pressed","true");
+});
