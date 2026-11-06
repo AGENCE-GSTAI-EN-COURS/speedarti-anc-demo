@@ -59,7 +59,7 @@ function build(st){
    return [x.key,r.mean===null||r.mean===undefined?"Non calculé":String(r.mean)+" mm/h",r.graphical===null||r.graphical===undefined?"Non calculé":String(r.graphical)+" mm/h",
      r.complete?"Calcul provisoire — validation Fred obligatoire":"Données incomplètes"];
  });
- const savedMap=kind=>maps.find(m=>m.kind===kind||(kind==="situation"&&m.kind==="location")||(kind==="cadastre"&&m.kind==="cadastral")||(kind==="implantation"&&m.kind==="layout"));
+ const savedMap=kind=>[...maps].reverse().find(m=>m.kind===kind||(kind==="situation"&&m.kind==="location")||(kind==="cadastre"&&m.kind==="cadastral")||(kind==="implantation"&&m.kind==="layout"));
  const chapters=[];
  const coverPhoto=typeof st.reportCoverPhoto==="string"&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(st.reportCoverPhoto)&&st.reportCoverPhoto.length<950000?
    '<img src="'+esc(st.reportCoverPhoto)+'" alt="Photographie du site rattachée à ce dossier">':
@@ -184,6 +184,12 @@ function build(st){
   ["aerial","Annexe 3 — Vue aérienne et terrain"],
   ["implantation","Annexe 4 — Implantation de la filière ANC"],
   ["geology","Annexe 5 — Carte géologique BRGM"]];
+ const otherKinds=[
+   ["flood","Risques d’inondation"],["groundwater","Remontée de nappe"],["environment","Contraintes environnementales"],
+   ["investigation","Sondages et essais Porchet"],["trenches","Tranchées d’infiltration"],["networks","Réseaux existants"],
+   ["evacuation","Évacuation / exutoire"],["works","Travaux / terrassement"],["synthesis","Synthèse ANC"]
+ ];
+ for(const [kind,label] of otherKinds)if(savedMap(kind))mapGroups.push([kind,"Annexe supplémentaire — "+label]);
  for(const [kind,label] of mapGroups){
    const m=savedMap(kind);
    let img="";
@@ -194,10 +200,14 @@ function build(st){
      }catch{}
    }
    chapters.push(chapter("map-"+kind,label,
-     '<p><strong>Source :</strong> '+safe(m?.source)+'</p>'+
+     '<p><strong>Source :</strong> '+safe(m?.source)+'</p>'+ 
+     '<p><strong>Composition sauvegardée :</strong> '+safe(m?.label||kind)+
+     ' — filtres : '+safe((m?.overlays||[]).join(', '))+
+     ' — cadrage : '+safe(Array.isArray(m?.center)?m.center.map(x=>Number(x).toFixed(5)).join(', '):'')+
+     ' — zoom : '+safe(m?.zoom)+'</p>'+
      (img||'<div style="height:110mm;border:1px dashed #bfcee0;display:grid;place-items:center;color:#6e8496">Carte non enregistrée ou non disponible — à joindre</div>')+
      '<p>Statut : '+safe(m?.status||"À enregistrer")+' — date de sauvegarde : '+safe(m?.savedAt?date(m.savedAt):"")+'</p>'+
-     '<p>Les aperçus cartographiques doivent être figés, contrôlés et légendés avant signature. Une URL distante ne remplace pas une image archivée.</p>'));
+     '<p>Vue enregistrée dans le dossier avec ses couches et son cadrage. L’image distante est un aperçu partiel : seules les couches du même fournisseur peuvent être représentées sur cet aperçu. Les cartes doivent être figées, contrôlées et légendées avant signature.</p>'));
  }
  const photoCount=Array.isArray(st.cells?.photos)?st.cells.photos.length:0;
  chapters.push(chapter("photos","Annexe 6 — Photographies",
