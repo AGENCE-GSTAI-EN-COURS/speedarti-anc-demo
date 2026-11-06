@@ -34,6 +34,7 @@ jobs:
           node --check assets/map-runtime.js
           node --check assets/field-sources.js
           node --check assets/map-gallery.js
+          node --check assets/report-restoration.js
       - name: Install public demo test tools
         run: npm install --no-audit --no-fund
       - name: Install Chromium
@@ -63,13 +64,17 @@ jobs:
         run: |
           mkdir -p site/assets site/assets/images site/sections
           cp index.html site/
-          cp assets/original.css assets/public.css assets/public.js assets/demo-engine.js assets/porchet-excel.js assets/porchet-excel.css assets/live-workflow.js assets/geo-parcel.js assets/terrain-enrichment.js assets/live-controls.js assets/map-runtime.js assets/field-sources.js assets/map-gallery.js assets/leaflet.js assets/leaflet.css site/assets/
+          cp assets/original.css assets/public.css assets/public.js assets/demo-engine.js assets/porchet-excel.js assets/porchet-excel.css assets/live-workflow.js assets/geo-parcel.js assets/terrain-enrichment.js assets/live-controls.js assets/map-runtime.js assets/field-sources.js assets/map-gallery.js assets/report-restoration.js assets/fred-report-theme.css assets/leaflet.js assets/leaflet.css site/assets/
           cp assets/images/* site/assets/images/
           cp sections/*.html site/sections/
           touch site/.nojekyll
           test "$(find site/sections -maxdepth 1 -name '*.html' | wc -l)" -eq 14
           test -f site/assets/public.js
           test -f site/assets/original.css
+          test -s site/assets/report-restoration.js
+          test -s site/assets/fred-report-theme.css
+          grep -q 'report-restoration.js' site/index.html
+          grep -q 'fred-report-theme.css' site/index.html
       - uses: actions/upload-pages-artifact@v3
         with:
           path: 'site'
