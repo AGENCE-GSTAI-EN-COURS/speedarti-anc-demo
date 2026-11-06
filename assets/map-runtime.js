@@ -225,8 +225,11 @@ function mount(section){
  leaflet().then(ok=>{
    if(!target.isConnected||activeSection!==mountedSection||activeStudyId!==mountedStudyId)return;
    if(!ok){status("Bibliothèque de cartographie indisponible.",true);return;}
-   const coords=coordinates(),center=coords||[46.6,2.3];
-   map=L.map(canvas,{zoomControl:true,scrollWheelZoom:false}).setView(center,coords?18:6);
+   const coords=coordinates(),savedView=study()?.mapView;
+   const savedCenter=Array.isArray(savedView?.center)&&savedView.center.length===2&&savedView.center.every(n=>Number.isFinite(Number(n)))?savedView.center:null;
+   const center=savedCenter||coords||[46.6,2.3];
+   const zoom=Number.isFinite(Number(savedView?.zoom))?Math.min(20,Math.max(3,Number(savedView.zoom))):coords?18:6;
+   map=L.map(canvas,{zoomControl:true,scrollWheelZoom:false}).setView(center,zoom);
    map.on("click",event=>{if(pickerMode)previewPoint(event.latlng.lat,event.latlng.lng);});
    configureLayers();restoreView();
    L.control.scale({metric:true,imperial:false,position:"bottomleft"}).addTo(map);
@@ -317,7 +320,7 @@ function saveMap(){
    if(st.id!==activeStudyId)return;
    st.maps=Array.isArray(st.maps)?st.maps:[];
    st.maps.push(record);
-   st.mapView={...(st.mapView||{}),...m};
+   st.mapView={...(st.mapView||{}),...m,center:[center.lat,center.lng],bounds,zoom:map.getZoom()};
  });
  const exists=(study()?.maps||[]).some(x=>x.id===record.id&&x.base===record.base&&x.overlays?.length===record.overlays.length);
  if(!exists){saveStatus("Échec de sauvegarde : espace local indisponible ou plein. Exportez le dossier JSON.",true);return;}
