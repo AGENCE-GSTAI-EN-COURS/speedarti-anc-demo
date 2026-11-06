@@ -162,7 +162,7 @@ function build(st){
     ["Nombre vues cartographiques",maps.length],["Filière validée",value(f,"solution.type")],
     ["Tranchées du schéma local (m)",st.plan?.points?.length>1?st.plan.points.slice(1).reduce((sum,p,i)=>sum+Math.hypot(p.x-st.plan.points[i].x,p.y-st.plan.points[i].y),0).toFixed(2)+" m":"" ]])+
    '<h2>Sondages du dossier</h2>'+tab(["Sondage","Profondeur"],surveys.map(s=>[s.name,s.depth?s.depth+" cm":""]))+
-   '<h2>Résultats Porchet provisoires</h2>'+tab(["Essai","K moyen (mm/h)"],tests.map(t=>[t.key,Number.isFinite(Number(t.result?.mean))?Number(t.result.mean).toFixed(3):""]))+
+   '<h2>Résultats Porchet provisoires</h2>'+tab(["Essai","K moyen (mm/h)"],tests.map(t=>[t.key,t.result?.mean!==null&&t.result?.mean!==undefined&&Number.isFinite(Number(t.result.mean))?Number(t.result.mean).toFixed(3):""]))+
    '<p><b>VALIDATION PROFESSIONNELLE OBLIGATOIRE</b></p>'+
    '<p>Cette synthèse est destinée à la vérification et à la validation du dossier par le bureau d’études.</p>'));
  const mapGroups=[["situation","Annexe 1 — Carte de situation"],
