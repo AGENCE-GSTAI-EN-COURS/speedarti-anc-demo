@@ -40,3 +40,24 @@ test("Site GitHub Pages — Porchet et rapport à partir des données saisies",a
   await expect(page.locator("#axis-report-page")).toContainText("TEST REEL PUBLIC");
   await expect(page.locator("#axis-report-page")).toContainText("7.453");
 });
+
+
+test("Site GitHub Pages — le modèle Fred est VRAIMENT publié et visible avec au moins 29 pages",async({page,request})=>{
+ const [theme,engine]=await Promise.all([
+   request.get("assets/fred-report-theme.css"),
+   request.get("assets/report-restoration.js")
+ ]);
+ expect(theme.status()).toBe(200);
+ expect(engine.status()).toBe(200);
+ expect(await theme.text()).toContain("anc-fred-cover-photo");
+ expect(await engine.text()).toContain("ANCReportRestoration");
+
+ await page.goto("?build=20261106-fred#rapport",{waitUntil:"domcontentloaded"});
+ await expect.poll(async()=>page.locator("#report-pages>.a4").count(),{timeout:18000}).toBeGreaterThanOrEqual(29);
+ await expect(page.locator(".anc-fred-cover-top")).toBeVisible();
+ await expect(page.locator('.anc-fred-toc-row').first()).toBeVisible();
+ await expect(page.locator('#report-pages [data-anc-chapter="sommaire"]')).toHaveCSS("background-color","rgb(155, 221, 101)");
+ await expect(page.locator("#axis-report-page")).toContainText("VALIDATION PROFESSIONNELLE OBLIGATOIRE");
+ const cssLoaded=await page.evaluate(()=>Array.from(document.styleSheets).some(s=>s.href?.includes("fred-report-theme.css")));
+ expect(cssLoaded).toBe(true);
+});
