@@ -67,11 +67,26 @@
         const mounted=viewport.querySelector("section");
         try {window.ANCDemoEngine?.addHorizonButtons?.(mounted);}
         catch(err){console.error("ANC demo horizons",slug,err);}
-        try {window.ANCRealWorkflow?.mount?.(mounted,slug);window.ANCGeoParcel?.mount?.(mounted);window.ANCTerrainEnrichment?.mount?.(mounted);window.ANCRealControls?.mount?.(mounted);window.ANCFieldSources?.mount?.(mounted);window.ANCMapGallery?.mount?.(mounted);window.ANCMapRuntime?.mount?.(mounted);window.ANCReportRestoration?.mount?.(mounted);}
-        catch(err){
-          console.error("ANC demo real workflow mount",slug,err);
-          window.__ancMountError={page:slug,message:String(err?.message||err)};
+        // Les modules sont isolés : une erreur terrain/cadastre ne doit jamais
+        // empêcher cartes, dossier ou rapport de s'initialiser.
+        const modules=[
+          ["workflow",()=>window.ANCRealWorkflow?.mount?.(mounted,slug)],
+          ["cadastre",()=>window.ANCGeoParcel?.mount?.(mounted)],
+          ["terrain",()=>window.ANCTerrainEnrichment?.mount?.(mounted)],
+          ["contrôles",()=>window.ANCRealControls?.mount?.(mounted)],
+          ["sources",()=>window.ANCFieldSources?.mount?.(mounted)],
+          ["galerie",()=>window.ANCMapGallery?.mount?.(mounted)],
+          ["éditeur cartographique",()=>window.ANCMapRuntime?.mount?.(mounted)],
+          ["rapport",()=>window.ANCReportRestoration?.mount?.(mounted)]
+        ];
+        const mountErrors=[];
+        for(const [name,fn] of modules){
+          try{fn();}catch(err){
+            console.error("ANC module mount",slug,name,err);
+            mountErrors.push(name+": "+String(err?.message||err));
+          }
         }
+        window.__ancMountError=mountErrors.length?{page:slug,message:mountErrors.join(" | ")}:null;
       }
       if(scroll)window.scrollTo({top:0,behavior:"auto"});
     }catch(error){
