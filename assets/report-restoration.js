@@ -61,13 +61,27 @@ function build(st){
  });
  const savedMap=kind=>maps.find(m=>m.kind===kind||(kind==="situation"&&m.kind==="location")||(kind==="cadastre"&&m.kind==="cadastral")||(kind==="implantation"&&m.kind==="layout"));
  const chapters=[];
+ const coverPhoto=typeof st.reportCoverPhoto==="string"&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(st.reportCoverPhoto)&&st.reportCoverPhoto.length<950000?
+   '<img src="'+esc(st.reportCoverPhoto)+'" alt="Photographie du site rattachée à ce dossier">':
+   '<span class="anc-fred-photo-prompt">Photographie de la parcelle à ajouter dans le dossier</span>';
+ const coverMissing=coverPhoto.startsWith("<span")?" empty":"";
  chapters.push(chapter("couverture","RAPPORT D’ÉTUDE DE CONCEPTION — ASSAINISSEMENT NON COLLECTIF",
-   '<div style="margin-top:30mm;text-align:center"><div style="font-size:14pt;color:#2468a0;font-weight:bold">SpeedArti — Études ANC</div>'+
-   '<h2 style="font-size:19pt;margin:16mm 0 13mm">'+safe(titleOf(f,st))+'</h2>'+
-   '<p><strong>Demandeur</strong> — '+safe(person)+'</p><p><strong>Adresse du projet</strong> — '+safe(where)+'</p>'+
-   '<p><strong>Parcelle(s)</strong> — '+safe(parcels.map(p=>[p.section,p.number].filter(Boolean).join(" ")).filter(Boolean).join(", "))+'</p>'+
-   '<p><strong>Référence</strong> — '+safe(ref)+'</p><p><strong>Date de visite</strong> — '+safe(value(f,"visit.studyDate"))+'</p></div>'+
-   '<div style="margin-top:20mm">'+notice+'</div>',"cover"));
+   '<div class="anc-fred-cover-top"><div class="anc-fred-cover-logo">'+
+   '<span class="anc-fred-brand-symbol" aria-hidden="true">≈</span>'+
+   '<div class="anc-fred-cover-logo-text"><span>'+safe(office)+'</span><small>ASSAINISSEMENT • ÉTUDE DE CONCEPTION</small></div></div>'+
+   '<div class="anc-fred-cover-office">'+
+   '<div>'+safe(value(f,"company.address"))+'</div>'+
+   '<div>Tél. '+safe(value(f,"company.phone"))+'</div>'+
+   '<div>'+safe(value(f,"company.email"))+'</div></div></div>'+
+   '<div class="anc-fred-cover-client"><strong>'+safe(person)+'</strong>'+
+   '<span>'+safe(where)+'</span></div>'+
+   '<div class="anc-fred-cover-photo'+coverMissing+'">'+coverPhoto+'</div>'+
+   '<div class="anc-fred-cover-parcel"><div>Section et parcelle : <span class="cadastral-label">'+
+   safe(parcels.map(p=>[p.section,p.number].filter(Boolean).join(" ")).filter(Boolean).join(", "))+'</span></div>'+
+   '<div>Étude réalisée le '+safe(value(f,"visit.studyDate"))+'</div>'+
+   '<div>Référence '+safe(ref)+'</div></div>'+
+   '<div class="anc-fred-cover-subtitle">BUREAU D’ÉTUDES TECHNIQUES — ASSAINISSEMENT ET GESTION DE L’EAU</div>'+
+   '<div class="anc-fred-cover-caution">'+notice+'</div>',"cover"));
  chapters.push(chapter("sommaire","SOMMAIRE",'<div id="anc-report-toc-placeholder"></div>'));
  chapters.push(chapter("mission","Objet de l’étude et limites de la mission",
    '<p>Étude préalable à la conception d’une installation d’assainissement non collectif. Les résultats sont à compléter par les observations terrain et les vérifications réglementaires du bureau d’études.</p>'+
@@ -218,8 +232,11 @@ function pageMarkup(ch,i,total,meta){
 function generate(section){
  const st=get(),node=$("#report-pages",section);if(!st||!node)return;
  const meta=build(st),chapters=meta.chapters;
- const toc=chapters.map((ch,i)=>'<div style="display:flex;gap:12px;border-bottom:1px dotted #d7e0e9;padding:5px 0;font-size:10pt">'+
-    '<span style="flex:1">'+esc(ch.title)+'</span><strong>'+String(i+1)+'</strong></div>').join("");
+ const major=new Set(["mission","client","sondages","porchet-intro","filiere","entretien","synthese","photos","sources","signature"]);
+ const toc='<div class="anc-fred-toc">'+chapters.map((ch,i)=>
+  '<div class="anc-fred-toc-row'+(major.has(ch.id)||ch.kind==="cover"?" major":"")+'">'+
+  '<span class="toc-caption">'+esc(ch.title)+'</span><span class="toc-leader"></span>'+
+  '<span class="toc-page">'+String(i+1)+'</span></div>').join("")+'</div>';
  chapters[1].content='<p>Sommaire généré à partir des pages effectivement présentes dans le dossier.</p>'+toc;
  node.innerHTML=chapters.map((ch,i)=>pageMarkup(ch,i,chapters.length,meta)).join("");
  const summary=$("#anc-report-page-counter",section);
@@ -249,7 +266,7 @@ function mount(section){
    toolbar.innerHTML='<button type="button" class="btn primary" data-anc-report-view="dossier" aria-pressed="true">Rapport complet du dossier</button>'+
      '<button type="button" class="btn secondary" data-anc-report-view="historique" aria-pressed="false">Voir l’ancien modèle (29 pages)</button>'+
      '<button type="button" class="btn secondary" data-anc-report-refresh="1">Actualiser depuis le dossier</button>'+
-     '<span class="anc-report-summary" id="anc-report-page-counter"></span>';
+     '<label class="anc-report-photo-label">📷 Photo de couverture<input id="anc-report-cover-photo" type="file" accept="image/jpeg,image/png,image/webp"></label><span class="anc-report-summary" id="anc-report-page-counter"></span>';
    section.querySelector(".section-head")?.insertAdjacentElement("afterend",toolbar);
  }
  const exportWord=section.querySelector('[data-action="export-word"]');
@@ -261,9 +278,13 @@ function exportWord(section){
  const pages=$("#report-pages",section);if(!pages)return;
  const st=get(),ref=String(st?.fields?.reference||st?.id||"anc");
  const html='<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"><style>'+
-   'body{font-family:Arial,sans-serif;color:#263b51}section{page-break-after:always;padding:20px}h1{color:#144f85;font-size:21px}h2{color:#225d95}'+
-   'table{border-collapse:collapse;width:100%}th,td{border:1px solid #becddc;text-align:left;padding:6px;font-size:11px}'+
-   '.page-head,.page-foot{font-size:9px;color:#5f6c7a}.anc-report-notice{border:1px solid #c9a354;padding:12px}'+
+   'body{font-family:Arial,sans-serif;color:#252d31}section{page-break-after:always;min-height:275mm;padding:12mm 16mm}h1{color:#558c35;font-size:18pt}h2{color:#9646a8;font-size:11pt;text-transform:uppercase}'+
+   'table{border-collapse:collapse;width:100%}th,td{border:1px solid #b5cda5;text-align:left;padding:7px;font-size:9pt}th{background:#dff1cb}thead th{background:#8fd058}'+
+   '.page-head,.page-foot{font-size:8pt;color:#86ae63}.anc-report-notice{border:1px solid #d9bf80;padding:12px}'+
+   '.anc-fred-cover-top{display:flex;justify-content:space-between;gap:12mm;margin-bottom:18mm}.anc-fred-cover-logo{font-weight:bold;font-size:14pt}.anc-fred-cover-logo-text small{display:block;font-size:7pt;color:#7ab144}'+
+   '.anc-fred-cover-office{text-align:right;font-size:9pt}.anc-fred-cover-client{text-align:center;font-size:12pt}.anc-fred-cover-photo{height:85mm;text-align:center;background:#f0f7eb}.anc-fred-cover-photo img{max-width:100%;max-height:85mm}'+
+   '.anc-fred-cover-parcel{text-align:center}.anc-fred-cover-subtitle{text-align:center;color:#6fa63c}.anc-fred-toc-row{display:flex;gap:5px;padding:4px 0}.anc-fred-toc-row .toc-caption{flex:1}.toc-page{font-weight:bold}'+
+   '[data-anc-chapter=\\"sommaire\\"]{background:#9bdd65}.anc-page-body{padding:7mm}.anc-report-chapter-tag{font-size:8pt;color:#619c3d}'+
    '</style></head><body>'+pages.innerHTML+'</body></html>';
  const blob=new Blob(["\ufeff",html],{type:"application/msword;charset=utf-8"});
  const url=URL.createObjectURL(blob),a=document.createElement("a");
@@ -290,5 +311,30 @@ function handle(event){
  }
  return false;
 }
+async function importCoverPhoto(file){
+ if(!file||!file.type.match(/^image\/(png|jpeg|webp)$/))return;
+ if(file.size>9*1024*1024){window.alert("Photo trop volumineuse (9 Mo maximum).");return;}
+ const id=get()?.id;if(!id)return;
+ try{
+  const url=URL.createObjectURL(file),img=new Image();
+  await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error("Photo illisible"));img.src=url;});
+  URL.revokeObjectURL(url);
+  const ratio=Math.min(1,1500/img.naturalWidth,1000/img.naturalHeight);
+  const canvas=document.createElement("canvas");
+  canvas.width=Math.max(1,Math.round(img.naturalWidth*ratio));
+  canvas.height=Math.max(1,Math.round(img.naturalHeight*ratio));
+  const ctx=canvas.getContext("2d");if(!ctx)throw Error("Canvas indisponible");
+  ctx.drawImage(img,0,0,canvas.width,canvas.height);
+  const photo=canvas.toDataURL("image/jpeg",0.72);
+  if(photo.length>900000)throw Error("Photo compressée trop lourde pour l'enregistrement local.");
+  if(get()?.id!==id)return;
+  window.ANCRealWorkflow?.mutateStudy?.(study=>{if(study.id===id)study.reportCoverPhoto=photo;});
+  generate($("#rapport"));
+ }catch(error){window.alert("Impossible d'ajouter la photo : "+(error.message||String(error)));}
+}
+document.addEventListener("change",event=>{
+ const el=event.target;
+ if(el?.id==="anc-report-cover-photo"){void importCoverPhoto(el.files?.[0]);}
+});
 window.ANCReportRestoration={mount,handle,generate,showHistory};
 })();

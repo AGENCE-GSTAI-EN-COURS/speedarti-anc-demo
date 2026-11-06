@@ -46,7 +46,7 @@ test("Terrain : météo officielle simulée avec source, sans inventer résultat
 });
 test("Rapport : plusieurs pages sans page de synthèse isolée",async({page})=>{
  await page.goto("/#rapport");
- expect(await page.locator("#report-pages > section").count()).toBeGreaterThanOrEqual(24);
+ await expect.poll(async()=>page.locator("#report-pages > section").count()).toBeGreaterThanOrEqual(24);
  await expect(page.locator("#report-pages > section").first()).toContainText("RAPPORT D’ÉTUDE DE CONCEPTION");
  await expect(page.locator("#axis-report-page")).toContainText("VALIDATION PROFESSIONNELLE OBLIGATOIRE");
 });
