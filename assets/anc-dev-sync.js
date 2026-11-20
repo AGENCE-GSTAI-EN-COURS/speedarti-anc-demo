@@ -14,6 +14,12 @@
       <label>Adresse du compte de test <input class="input" type="email" name="email" autocomplete="username" required></label>
       <label>Mot de passe <input class="input" type="password" name="password" autocomplete="current-password" required></label>
       <button class="btn primary" type="submit">Se connecter</button>
+      <button class="btn secondary" type="button" data-anc-email>Recevoir un lien par e-mail</button>
+    </form>
+    <form method="post" data-anc-link-form hidden>
+      <p>Copiez l’adresse du lien reçu par e-mail et collez-la ici.</p>
+      <label>Lien reçu par e-mail <input class="input" name="link" type="password" autocomplete="off" required></label>
+      <button class="btn primary" type="submit">Valider le lien</button>
     </form>
     <div data-anc-session hidden>
       <p><label><input type="checkbox" data-anc-fictif> Je confirme que le dossier ne contient que des données fictives.</label></p>
@@ -28,12 +34,14 @@
     <p role="status" aria-live="polite" data-anc-status></p>`;
   document.querySelector("#app")?.before(root);
   const form = root.querySelector("[data-anc-signin]");
+  const linkForm = root.querySelector("[data-anc-link-form]");
   const panel = root.querySelector("[data-anc-session]");
   const studies = root.querySelector("[data-anc-studies]");
   const fictional = root.querySelector("[data-anc-fictif]");
   const message = root.querySelector("[data-anc-status]");
   let session;
   let busy = false;
+  linkForm.hidden = false;
 
   function logout() {
     session = null;
@@ -41,6 +49,7 @@
     studies.replaceChildren();
     form.hidden = false;
     panel.hidden = true;
+    linkForm.hidden = false;
   }
 
   async function perform(operation) {
@@ -138,6 +147,41 @@
     message.textContent = "Dossier sauvegardé dans Supabase · révision " + result.revision + ".";
   }
 
+  async function showSession() {
+    await refresh();
+    form.hidden = true;
+    linkForm.hidden = true;
+    panel.hidden = false;
+    message.textContent = "Compte de test connecté.";
+  }
+
+  root.querySelector("[data-anc-email]").addEventListener("click", () => {
+    if (!form.elements.email.reportValidity()) return;
+    perform(async () => {
+      await api("/auth/v1/otp", { email: form.elements.email.value.trim(), create_user: false });
+      message.textContent = "Consultez votre boîte e-mail pour récupérer le lien.";
+      linkForm.elements.link.focus();
+    });
+  });
+
+  linkForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    perform(async () => {
+      try {
+        const input = new URL(linkForm.elements.link.value.trim());
+        const tokenHash = input.searchParams.get("token");
+        if (input.origin !== endpoint || input.pathname !== "/auth/v1/verify" ||
+            input.searchParams.get("type") !== "magiclink" || !tokenHash) {
+          throw new Error("Copiez le lien de connexion envoyé par l’ANC DEV.");
+        }
+        session = await api("/auth/v1/verify", { token_hash: tokenHash, type: "email" });
+      } finally {
+        linkForm.elements.link.value = "";
+      }
+      await showSession();
+    });
+  });
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     perform(async () => {
@@ -150,10 +194,7 @@
       } finally {
         form.elements.password.value = "";
       }
-      await refresh();
-      form.hidden = true;
-      panel.hidden = false;
-      message.textContent = "Compte de test connecté.";
+      await showSession();
     });
   });
 
