@@ -68,6 +68,9 @@ test("L'impression ne masque aucune page A4 et affiche une page par feuille",asy
  await expect(page.locator("#report-pages")).toHaveAttribute("data-report-mode","dossier");
  const count=await page.locator("#report-pages>.a4").count();
  await page.emulateMedia({media:"print"});
+ await expect(page.locator("[data-anc-example]")).toBeHidden();
+ await expect(page.locator("#rapport .report-controls")).toBeHidden();
+ await expect(page.locator("#rapport .s4-footer")).toBeHidden();
  const state=await page.locator("#report-pages>.a4").evaluateAll(nodes=>nodes.map(el=>({
   display:getComputedStyle(el).display,hidden:el.hidden,
   pageBreak:getComputedStyle(el).breakAfter

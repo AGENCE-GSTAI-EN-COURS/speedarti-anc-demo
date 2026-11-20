@@ -44,6 +44,8 @@
 #rapport .anc-report-model-watermark{position:absolute;top:6mm;right:7mm;z-index:2;font-weight:900;color:#a33b29;font-size:8pt;letter-spacing:.05em;background:#fff1ef;padding:6px}
 @media print{
  @page{size:A4;margin:0}
+ body > :not(#app),#app .main > :not(#public-sections),
+ #rapport > article:first-of-type,#rapport .s4-footer{display:none!important}
  #rapport .anc-report-toolbar,#rapport .anc-report-summary{display:none!important}
  #rapport #report-pages{display:block!important;margin:0!important;padding:0!important}
  #rapport #report-pages>.a4{display:block!important;page-break-after:always;break-after:page;box-shadow:none!important;margin:0!important;min-height:297mm!important}
