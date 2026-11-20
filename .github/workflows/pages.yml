@@ -40,7 +40,7 @@ jobs:
       - name: Install public demo test tools
         run: npm install --no-audit --no-fund
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --only-shell chromium
       - name: Test demo on desktop and mobile
         run: npm run test:e2e
       - name: Ensure private-source folders are absent
@@ -111,6 +111,6 @@ jobs:
       - name: Installer outils de recette
         run: npm install --no-audit --no-fund
       - name: Installer Chromium
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --only-shell chromium
       - name: Vérifier le VRAI site publié (PC + mobile)
         run: npx playwright test --config=playwright.live.config.mjs
