@@ -45,6 +45,7 @@ test("Photo de couverture : ajout local rattaché uniquement au dossier courant,
 
 test("Impression A4 : pages visibles et vert de sommaire conservé",async({page})=>{
  await page.goto("/#rapport");
+ await expect(page.locator("#report-pages")).toHaveAttribute("data-report-mode","dossier");
  await page.emulateMedia({media:"print"});
  const pages=page.locator("#report-pages>.a4");
  const count=await pages.count();
