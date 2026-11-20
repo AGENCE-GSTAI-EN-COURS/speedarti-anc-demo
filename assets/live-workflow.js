@@ -599,5 +599,33 @@
     if(el.dataset?.path&&el.closest("#public-sections"))commitElement(el);
   },true);
   function mutateStudy(callback){const db=read(),st=current(db);if(!st)return null;callback(st);save(db);return st;}
-  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction,getStudy:()=>current(read()),mutateStudy};
+  function cloudExport(){
+    beforeNavigate();
+    const study=current(read());
+    if(!study)return null;
+    const {id,name,createdAt,fields,toggles,porchet,plan}=study;
+    return {id,name,createdAt,fields,toggles,porchet,plan};
+  }
+  async function cloudImport(data){
+    if(typeof data?.id!=="string"||typeof data.name!=="string"||!data.fields||typeof data.fields!=="object"){
+      throw new Error("Dossier de démonstration incompatible.");
+    }
+    beforeNavigate();
+    const db=read();
+    const {
+      id:studyId,name,createdAt,fields,toggles,plan,
+      porchet,
+    }=data;
+    const restored={id:studyId,name,createdAt,fields,toggles,plan,porchet,cells:{},isNew:true,archived:false};
+    const index=db.studies.findIndex(study=>study.id===studyId);
+    if(index<0)db.studies.push(restored);
+    else db.studies[index]=restored;
+    db.activeId=studyId;
+    if(!save(db))throw new Error("Stockage local indisponible.");
+    loadPorchet(restored);
+    localStorage.removeItem("speedarti-anc-public-sprint4-v1");
+    await window.ANCPublicNavigate?.("dossier",true,{capture:false});
+    return studyId;
+  }
+  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction,getStudy:()=>current(read()),mutateStudy,cloudExport,cloudImport};
 })();

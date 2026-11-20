@@ -26,3 +26,7 @@ La démonstration n'est pas un outil d'étude ANC validée. Tous les calculs tec
 ## Synchronisation des dossiers — correctif de parcours
 
 La nouvelle couche `assets/live-workflow.js` relie en local la création de clients, la sélection d’études, les champs du dossier, les sondages, les feuilles Porchet KP1–KP4 et le rapport. Le bouton d’en-tête dirige désormais vers **Voir mon rapport**, car il n’existe pas de calcul réglementaire global dans le dépôt public. Les données restent sur cet appareil, ne sont pas synchronisées avec SpeedArti.
+
+## Sauvegarde sur ANC DEV
+
+Un compte de test autorisé peut ouvrir le panneau **Sauvegarde ANC DEV** pour sauvegarder et rouvrir un dossier fictif. La démo publique conserve son fonctionnement local pour les visiteurs. La sauvegarde serveur couvre les formulaires du dossier, l’état des feuilles Porchet et le plan de démonstration. Les photos, les captures et les fragments HTML restent locaux. Le projet Supabase cible est dédié à l’ANC et les sauvegardes de la démo sont propres à son format.

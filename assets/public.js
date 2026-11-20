@@ -40,11 +40,13 @@
     return sanitized;
   }
 
-  async function navigate(slug,scroll=true){
+  async function navigate(slug,scroll=true,{capture=true}={}){
     if(!tabNames.has(slug))return;
     const thisToken=++token;
-    window.ANCRealWorkflow?.beforeNavigate?.();
-    window.ANCDemoEngine?.saveCurrent?.();
+    if(capture){
+      window.ANCRealWorkflow?.beforeNavigate?.();
+      window.ANCDemoEngine?.saveCurrent?.();
+    }
     nav.querySelectorAll(".tab").forEach(button=>{
       const on=button.dataset.tab===slug;
       button.classList.toggle("active",on);
