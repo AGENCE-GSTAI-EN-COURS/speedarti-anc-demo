@@ -385,7 +385,7 @@
       return {name:pick(".label")||"S"+(i+1),depth:pick(".depth"),classification:pick(".classification"),horizons:Object.entries(fields).filter(([key])=>/horizons\.\d+\.soil$/.test(key)).map(([,value])=>value)};
     });
     const pages=$("#report-pages",section);if(!pages)return;
-    const chapter=(title,body)=>'<section class="a4 anc-generated-page"><div class="page-head"><span>SpeedArti ANC — SPÉCIMEN</span><span>'+escText(f.reference||st.id)+'</span></div><div style="padding:14mm 12mm"><h1>'+title+'</h1><p class="notice warn">SPÉCIMEN — VALIDATION PROFESSIONNELLE OBLIGATOIRE. Aucune information non renseignée n’est considérée comme vérifiée.</p>'+body+'</div><div class="page-foot"><span>Document provisoire</span><span>Fred valide les calculs et conclusions</span></div></section>';
+    const chapter=(title,body)=>'<section class="a4 anc-generated-page"><div class="page-head"><span>SpeedArti ANC — SPÉCIMEN</span><span>'+escText(f.reference||st.id)+'</span></div><div style="padding:14mm 12mm"><h1>'+title+'</h1><p class="notice warn">SPÉCIMEN — VALIDATION PROFESSIONNELLE OBLIGATOIRE. Aucune information non renseignée n’est considérée comme vérifiée.</p>'+body+'</div><div class="page-foot"><span>Document provisoire</span><span>Calculs et conclusions provisoires</span></div></section>';
     const table=(heads,rows)=>'<table style="width:100%;border-collapse:collapse"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(row=>'<tr>'+row.map(x=>'<td>'+escText(x)+'</td>').join("")+'</tr>').join("")+'</tbody></table>';
     const name=[f["owner.firstName"],f["owner.lastName"]].filter(Boolean).join(" ");
     const maps=Array.isArray(st.maps)?st.maps:[];
@@ -403,8 +403,8 @@
         table(["Sondage","Profondeur","Classification","Horizons saisis"],boreholes.length?boreholes.map(x=>[x.name,x.depth?x.depth+" cm":"",x.classification,x.horizons.filter(Boolean).join(" / ")||"À renseigner"]):[["Aucun sondage","", "",""]])+
         '<p>Le contenu des horizons doit être confirmé par observation du sol. Les informations saisies sont conservées à titre préparatoire.</p>'),
       chapter("3. Essais de perméabilité Porchet",
-        table(["Essai","K moyen mm/h","K graphique mm/h","Contrôle"],krows.length?krows.map(x=>[x.key,x.result.mean===null?"Non calculé":x.result.mean.toFixed(3),x.result.graphical===null?"Non calculé":x.result.graphical.toFixed(3),x.result.complete?"À valider par Fred":"Saisie incomplète"]):[["Aucun essai","","",""]])+
-        '<p>Résultats indicatifs : contrôler les temps, graduations, protocoles, unités et résultats avec le tableur validé de Fred.</p>'),
+        table(["Essai","K moyen mm/h","K graphique mm/h","Contrôle"],krows.length?krows.map(x=>[x.key,x.result.mean===null?"Non calculé":x.result.mean.toFixed(3),x.result.graphical===null?"Non calculé":x.result.graphical.toFixed(3),x.result.complete?"Calcul provisoire":"Saisie incomplète"]):[["Aucun essai","","",""]])+
+        '<p>Résultats indicatifs : contrôler les temps, graduations, protocoles, unités et résultats avec le tableur de référence de Fred.</p>'),
       chapter("4. Contexte environnemental et cartographie",
         '<p><b>Météo :</b> '+escText(sources.weather?.summary||f["visit.weather"])+'</p><p><b>Origine météo :</b> '+escText(sources.weather?.source)+'</p><p><b>Géorisques :</b> '+escText(sources.risks?.summary)+'</p><p><b>BRGM :</b> '+escText(sources.geology?.summary)+'</p><p><b>Cartes du dossier :</b> '+(maps.length?maps.length+" carte(s) conservée(s)":"Aucune capture validée")+'</p><p>Les périmètres de risques nécessitent une vérification auprès des services officiels, même en l’absence de résultat automatique.</p>'),
       chapter("5. Préconisations et réserves",

@@ -57,7 +57,7 @@ function build(st){
  const testRows=tests.map(x=>{
    const r=x.result||{};
    return [x.key,r.mean===null||r.mean===undefined?"Non calculé":String(r.mean)+" mm/h",r.graphical===null||r.graphical===undefined?"Non calculé":String(r.graphical)+" mm/h",
-     r.complete?"Calcul provisoire — validation Fred obligatoire":"Données incomplètes"];
+     r.complete?"Calcul provisoire — essai à vérifier":"Données incomplètes"];
  });
  const savedMap=kind=>[...maps].reverse().find(m=>m.kind===kind||(kind==="situation"&&m.kind==="location")||(kind==="cadastre"&&m.kind==="cadastral")||(kind==="implantation"&&m.kind==="layout"));
  const chapters=[];
@@ -134,7 +134,7 @@ function build(st){
  }
  chapters.push(chapter("porchet-intro","2.2 Essais de perméabilité — Porchet",
    tab(["Référence","K moyen","K graphique","Statut"],testRows)+
-   '<p>Nombre de feuilles Porchet présentes : <strong>'+tests.length+'</strong>. Les valeurs calculées restent provisoires tant que la parité avec le tableur de Fred et la conformité des essais n’ont pas été validées.</p>'));
+   '<p>Nombre de feuilles Porchet présentes : <strong>'+tests.length+'</strong>. Le tableur de Fred sert de référence technique. Les valeurs restent provisoires jusqu’à la vérification des essais et à la validation professionnelle du dossier.</p>'));
  for(const t of tests){
    const d=t.data,r=t.result||{};
    chapters.push(chapter("porchet-"+t.key,"2.3 Essai Porchet — "+t.key,

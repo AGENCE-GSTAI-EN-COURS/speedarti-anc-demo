@@ -51,7 +51,7 @@ function panel(section){
  const failed=check.checks.filter(x=>!x.ok).length;
  card.innerHTML='<header><div><h2>Contrôles réels des données saisies</h2><p>Vérifications de complétude du dossier actif. Aucun calcul réglementaire ni conformité ANC n’est déduit de ces indicateurs.</p></div><button class="btn primary" type="button" data-live-control="refresh">Relancer les contrôles</button></header>'+
  '<div class="anc-v3-body"><div class="notice '+(failed?"warn":"info")+'">'+check.complete+'/'+check.required+' vérifications de complétude satisfaites · '+failed+' point(s) à compléter. La validation professionnelle reste obligatoire.</div>'+
- check.checks.map(c=>'<div class="live-check-row"><span>'+(c.ok?"✓":"⚠")+'</span><div><strong>'+e(c.name)+'</strong><small>'+e(c.ok?"Information enregistrée — à contrôler par Fred.":c.advice)+'</small></div><b>'+e(c.ok?"RENSEIGNÉ":"À COMPLÉTER")+'</b></div>').join("")+
+ check.checks.map(c=>'<div class="live-check-row"><span>'+(c.ok?"✓":"⚠")+'</span><div><strong>'+e(c.name)+'</strong><small>'+e(c.ok?"Information enregistrée — à vérifier sur le dossier.":c.advice)+'</small></div><b>'+e(c.ok?"RENSEIGNÉ":"À COMPLÉTER")+'</b></div>').join("")+
  '<p class="anc-source-note">Les contrôles de conception, réglementations, distances et choix de filière ne sont pas disponibles sans moteur privé validé.</p></div>';
  const head=$(".section-head",section);
  if(head)head.insertAdjacentElement("afterend",card);else section.prepend(card);
@@ -78,7 +78,7 @@ function rules(section){
  let n=$(".live-rule-info",section);
  if(!n){
    n=document.createElement("div");n.className="notice warn live-rule-info";
-   n.textContent="Paramètres de démonstration modifiables et enregistrés, sans effet réglementaire automatique. Validation de Fred nécessaire avant l’application de ces règles.";
+   n.textContent="Paramètres de démonstration modifiables et enregistrés, sans effet réglementaire automatique. Vérifier les règles applicables au dossier avant toute utilisation professionnelle.";
    $(".section-head",section)?.insertAdjacentElement("afterend",n);
  }
  const btn=section.querySelector('[data-action="apply-rules"]');
