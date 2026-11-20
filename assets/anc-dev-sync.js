@@ -76,14 +76,19 @@
       throw new Error("Connexion indisponible. Le dossier reste enregistré dans ce navigateur.");
     }
     if (response.status === 204) return null;
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
     if (!response.ok) {
-      const error = new Error(typeof result.error === "string" && result.error !== "invalid_grant"
+      const limited = response.status === 429 && path.startsWith("/auth/v1/otp?");
+      const detail = typeof result?.error === "string" && result.error !== "invalid_grant"
         ? result.error
-        : "Connexion refusée ou service indisponible.");
+        : "Connexion refusée ou service indisponible.";
+      const error = new Error(limited
+        ? "Supabase limite temporairement l’envoi de liens. Si vous avez encore un lien non utilisé, ouvrez-le dans ce navigateur. Sinon, réessayez plus tard."
+        : detail);
       error.status = response.status;
       throw error;
     }
+    if (result === null) throw new Error("Réponse inattendue du service ANC.");
     return result;
   }
 
@@ -156,19 +161,13 @@
     perform(async () => {
       const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
       const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
-      const request = JSON.stringify({ verifier, startedAt: Date.now() });
-      localStorage.setItem(verifierKey, request);
-      try {
-        await api("/auth/v1/otp?" + new URLSearchParams({ redirect_to: redirect.href }), {
-          email: form.elements.email.value.trim(),
-          create_user: false,
-          code_challenge: base64url(new Uint8Array(hash)),
-          code_challenge_method: "s256",
-        });
-      } catch (error) {
-        if (localStorage.getItem(verifierKey) === request) localStorage.removeItem(verifierKey);
-        throw error;
-      }
+      await api("/auth/v1/otp?" + new URLSearchParams({ redirect_to: redirect.href }), {
+        email: form.elements.email.value.trim(),
+        create_user: false,
+        code_challenge: base64url(new Uint8Array(hash)),
+        code_challenge_method: "s256",
+      });
+      localStorage.setItem(verifierKey, JSON.stringify({ verifier, startedAt: Date.now() }));
       message.textContent = "Cliquez sur le bouton de connexion dans le dernier e-mail reçu, dans ce navigateur.";
     });
   });

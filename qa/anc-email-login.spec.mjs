@@ -1,8 +1,9 @@
 import { createHash } from "node:crypto";
 import { test, expect } from "@playwright/test";
 
-test("le lien e-mail ouvre la démo et termine la connexion dans un nouvel onglet", async ({ page, context, baseURL }) => {
+test("un renvoi refusé conserve le dernier lien pour la connexion dans un nouvel onglet", async ({ page, context, baseURL }) => {
   let challenge;
+  let requests = 0;
   await context.route("https://egvwiwtfkqrqlumhysuj.supabase.co/**", async (route) => {
     const request = route.request();
     const url = new URL(request.url());
@@ -12,8 +13,14 @@ test("le lien e-mail ouvre la démo et termine la connexion dans un nouvel ongle
       expect(body).toMatchObject({
         email: "compte-fictif@example.test", create_user: false, code_challenge_method: "s256",
       });
-      challenge = body.code_challenge;
-      await route.fulfill({ json: {} });
+      if (++requests === 1) {
+        challenge = body.code_challenge;
+        await route.fulfill({ json: {} });
+      } else {
+        await route.fulfill({
+          status: 429, json: { error_code: "over_email_send_rate_limit" },
+        });
+      }
     } else if (url.pathname === "/auth/v1/token") {
       const body = request.postDataJSON();
       expect(url.searchParams.get("grant_type")).toBe("pkce");
@@ -32,6 +39,8 @@ test("le lien e-mail ouvre la démo et termine la connexion dans un nouvel ongle
   await page.getByLabel("Adresse du compte de test").fill("compte-fictif@example.test");
   await page.getByRole("button", { name: "Recevoir un lien par e-mail" }).click();
   await expect(page.getByRole("status").filter({ hasText: "dernier e-mail" })).toBeVisible();
+  await page.getByRole("button", { name: "Recevoir un lien par e-mail" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Supabase limite temporairement" })).toBeVisible();
   const returned = await context.newPage();
   await returned.goto("/?code=code-de-test");
   await expect(returned.getByText("Compte de test connecté.", { exact: true })).toBeVisible();
