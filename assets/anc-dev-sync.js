@@ -2,6 +2,8 @@
 (() => {
   "use strict";
   const flow = document.currentScript.dataset.flow;
+  const redirect = new URL("../", document.currentScript.src);
+  const verifierKey = "speedarti-anc-dev:login-verifier";
   const endpoint = "https://egvwiwtfkqrqlumhysuj.supabase.co";
   const publishableKey = "sb_publishable_ksCwF5dwHuwstHuO1vTAnQ_jgWrk52u";
   const root = document.createElement("details");
@@ -12,14 +14,7 @@
     <p>Compte de test requis. Utilisez uniquement des dossiers fictifs.</p>
     <form method="post" data-anc-signin>
       <label>Adresse du compte de test <input class="input" type="email" name="email" autocomplete="username" required></label>
-      <label>Mot de passe <input class="input" type="password" name="password" autocomplete="current-password" required></label>
-      <button class="btn primary" type="submit">Se connecter</button>
-      <button class="btn secondary" type="button" data-anc-email>Recevoir un lien par e-mail</button>
-    </form>
-    <form method="post" data-anc-link-form hidden>
-      <p>Copiez l’adresse du lien reçu par e-mail et collez-la ici.</p>
-      <label>Lien reçu par e-mail <input class="input" name="link" type="password" autocomplete="off" required></label>
-      <button class="btn primary" type="submit">Valider le lien</button>
+      <button class="btn primary" type="submit">Recevoir un lien par e-mail</button>
     </form>
     <div data-anc-session hidden>
       <p><label><input type="checkbox" data-anc-fictif> Je confirme que le dossier ne contient que des données fictives.</label></p>
@@ -34,14 +29,12 @@
     <p role="status" aria-live="polite" data-anc-status></p>`;
   document.querySelector("#app")?.before(root);
   const form = root.querySelector("[data-anc-signin]");
-  const linkForm = root.querySelector("[data-anc-link-form]");
   const panel = root.querySelector("[data-anc-session]");
   const studies = root.querySelector("[data-anc-studies]");
   const fictional = root.querySelector("[data-anc-fictif]");
   const message = root.querySelector("[data-anc-status]");
   let session;
   let busy = false;
-  linkForm.hidden = false;
 
   function logout() {
     session = null;
@@ -49,7 +42,6 @@
     studies.replaceChildren();
     form.hidden = false;
     panel.hidden = true;
-    linkForm.hidden = false;
   }
 
   async function perform(operation) {
@@ -150,53 +142,64 @@
   async function showSession() {
     await refresh();
     form.hidden = true;
-    linkForm.hidden = true;
     panel.hidden = false;
     message.textContent = "Compte de test connecté.";
   }
 
-  root.querySelector("[data-anc-email]").addEventListener("click", () => {
-    if (!form.elements.email.reportValidity()) return;
-    perform(async () => {
-      await api("/auth/v1/otp", { email: form.elements.email.value.trim(), create_user: false });
-      message.textContent = "Consultez votre boîte e-mail pour récupérer le lien.";
-      linkForm.elements.link.focus();
-    });
-  });
-
-  linkForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    perform(async () => {
-      try {
-        const input = new URL(linkForm.elements.link.value.trim());
-        const tokenHash = input.searchParams.get("token");
-        if (input.origin !== endpoint || input.pathname !== "/auth/v1/verify" ||
-            input.searchParams.get("type") !== "magiclink" || !tokenHash) {
-          throw new Error("Copiez le lien de connexion envoyé par l’ANC DEV.");
-        }
-        session = await api("/auth/v1/verify", { token_hash: tokenHash, type: "email" });
-      } finally {
-        linkForm.elements.link.value = "";
-      }
-      await showSession();
-    });
-  });
+  function base64url(bytes) {
+    return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-")
+      .replaceAll("/", "_").replaceAll("=", "");
+  }
 
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     perform(async () => {
-      const inputs = new FormData(form);
+      const verifier = base64url(crypto.getRandomValues(new Uint8Array(32)));
+      const hash = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+      const request = JSON.stringify({ verifier, startedAt: Date.now() });
+      localStorage.setItem(verifierKey, request);
       try {
-        session = await api("/auth/v1/token?grant_type=password", {
-          email: String(inputs.get("email")).trim(),
-          password: inputs.get("password"),
+        await api("/auth/v1/otp?" + new URLSearchParams({ redirect_to: redirect.href }), {
+          email: form.elements.email.value.trim(),
+          create_user: false,
+          code_challenge: base64url(new Uint8Array(hash)),
+          code_challenge_method: "s256",
         });
-      } finally {
-        form.elements.password.value = "";
+      } catch (error) {
+        if (localStorage.getItem(verifierKey) === request) localStorage.removeItem(verifierKey);
+        throw error;
       }
-      await showSession();
+      message.textContent = "Cliquez sur le bouton de connexion dans le dernier e-mail reçu, dans ce navigateur.";
     });
   });
+
+  function handleEmailReturn() {
+    const current = new URL(location.href);
+    if (current.pathname !== redirect.pathname) return;
+    const code = current.searchParams.get("code");
+    const failed = current.searchParams.has("error") || current.searchParams.has("error_code");
+    if (!code && !failed) return;
+    for (const name of ["code", "error", "error_code", "error_description"]) {
+      current.searchParams.delete(name);
+    }
+    history.replaceState(history.state, "", current);
+    root.open = true;
+    perform(async () => {
+      const request = localStorage.getItem(verifierKey);
+      const login = request && JSON.parse(request);
+      if (failed || !login?.verifier || Date.now() - login.startedAt > 3600000) {
+        throw new Error("Redemandez un lien dans ce navigateur, puis ouvrez le dernier e-mail reçu.");
+      }
+      session = await api("/auth/v1/token?grant_type=pkce", {
+        auth_code: code,
+        code_verifier: login.verifier,
+      });
+      if (localStorage.getItem(verifierKey) === request) localStorage.removeItem(verifierKey);
+      await showSession();
+    });
+  }
+
+  handleEmailReturn();
 
   panel.addEventListener("click", (event) => {
     const action = event.target.closest("[data-anc-action]")?.dataset.ancAction;

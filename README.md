@@ -30,3 +30,5 @@ La nouvelle couche `assets/live-workflow.js` relie en local la création de clie
 ## Sauvegarde sur ANC DEV
 
 Un compte de test autorisé peut ouvrir le panneau **Sauvegarde ANC DEV** pour sauvegarder et rouvrir un dossier fictif. La démo publique conserve son fonctionnement local pour les visiteurs. La sauvegarde serveur couvre les formulaires du dossier, l’état des feuilles Porchet et le plan de démonstration. Les photos, les captures et les fragments HTML restent locaux. Le projet Supabase cible est dédié à l’ANC et les sauvegardes de la démo sont propres à son format.
+
+Le bouton de connexion envoyé par e-mail ouvre la démo dans le même navigateur. Dans Supabase ANC DEV, régler **Authentication → URL Configuration → Site URL** sur `https://agence-gstai-en-cours.github.io/speedarti-anc-demo/` avant le déploiement de ce parcours.
