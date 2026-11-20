@@ -62,7 +62,7 @@ function build(st){
  const savedMap=kind=>[...maps].reverse().find(m=>m.kind===kind||(kind==="situation"&&m.kind==="location")||(kind==="cadastre"&&m.kind==="cadastral")||(kind==="implantation"&&m.kind==="layout"));
  const chapters=[];
  const coverPhoto=typeof st.reportCoverPhoto==="string"&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(st.reportCoverPhoto)&&st.reportCoverPhoto.length<950000?
-   '<img src="'+esc(st.reportCoverPhoto)+'" alt="Photographie du site rattachée à ce dossier">':
+   '<img src="'+esc(st.reportCoverPhoto)+'" alt="'+(st.specimen?"Illustration fictive du dossier":"Photographie du site rattachée à ce dossier")+'">':
    '<span class="anc-fred-photo-prompt">Photographie de la parcelle à ajouter dans le dossier</span>';
  const coverMissing=coverPhoto.startsWith("<span")?" empty":"";
  chapters.push(chapter("couverture","RAPPORT D’ÉTUDE DE CONCEPTION — ASSAINISSEMENT NON COLLECTIF",
@@ -193,7 +193,9 @@ function build(st){
  for(const [kind,label] of mapGroups){
    const m=savedMap(kind);
    let img="";
-   if(m?.url){
+   if(typeof m?.frozenImage==="string" && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(m.frozenImage)){
+     img='<img src="'+m.frozenImage+'" style="max-width:100%;max-height:145mm;object-fit:contain" alt="'+esc(label)+'">';
+   }else if(m?.url){
      try{const u=new URL(m.url,location.href);
        if(u.protocol==="https:"&&["data.geopf.fr","geoservices.brgm.fr"].includes(u.hostname))
          img='<img src="'+esc(u.href)+'" style="max-width:100%;max-height:145mm;object-fit:contain" alt="'+esc(label)+'">';

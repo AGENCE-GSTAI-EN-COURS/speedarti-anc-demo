@@ -1,6 +1,6 @@
 /* ANC V3 — démonstration interactive locale.
  * État partagé entre Dossier, Chantier, Sondages, Porchet et Rapport.
- * Aucune donnée cliente réelle, aucun serveur, aucun moteur privé publié.
+ * Les dossiers publics sont des copies locales de démonstration.
  */
 (() => {
   "use strict";
@@ -116,9 +116,10 @@
     const list=$(".item-list",section);if(!list)return;
     const parser=new DOMParser();
     const tmp=document.createDocumentFragment();
-    for(const item of cards){
-      const doc=parser.parseFromString(item.html,"text/html");
-      const node=doc.querySelector(".item-card");if(!node)continue;
+    const templates=$$(".item-card",list);
+    for(const [index,item] of cards.entries()){
+      const doc=item.html?parser.parseFromString(item.html,"text/html"):null;
+      const node=doc?doc.querySelector(".item-card"):templates[index]?.cloneNode(true);if(!node)continue;
       node.querySelectorAll("script,iframe,object,embed").forEach(x=>x.remove());
       for(const el of node.querySelectorAll("*")){
         for(const att of Array.from(el.attributes)){
@@ -431,6 +432,7 @@
     if(slug==="sondages"){restoreBoreholes(section);syncMultiselects(section)}
     if(slug==="geometrie")plan(section);
     if(slug==="etudes")studiesPanel(section);
+    if(slug==="photos")specimenIllustration(section);
     if(slug==="clients")clientsPanel(section);
     if(slug==="rapport")report(section);
     const db=read(),st=current(db);
@@ -627,5 +629,41 @@
     await window.ANCPublicNavigate?.("dossier",true,{capture:false});
     return studyId;
   }
-  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction,getStudy:()=>current(read()),mutateStudy,cloudExport,cloudImport};
+  function specimenIllustration(section){
+    const st=current(read());
+    if(!st?.specimen || !st.reportCoverPhoto)return;
+    const card=document.createElement("article");
+    card.className="card";
+    const caption=document.createElement("p");
+    caption.textContent="Illustration du dossier fictif. Aucune photographie de terrain.";
+    const image=document.createElement("img");
+    image.src=st.reportCoverPhoto;
+    image.alt="Schéma fictif de la maison et des tranchées";
+    image.style.maxWidth="100%";
+    card.append(caption,image);
+    section.querySelector(".section-head")?.after(card);
+  }
+  async function openSpecimen(data){
+    if(typeof data?.name!=="string"||!data.fields||!Array.isArray(data.parcels)||
+       !Array.isArray(data.sondages)||!Array.isArray(data.maps)||!data.porchet?.sheets||
+       typeof data.illustration!=="string"||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(data.illustration)){
+      throw new Error("Dossier d’exemple incompatible.");
+    }
+    beforeNavigate();
+    const db=read();
+    const study={
+      ...fresh(data.name),specimen:true,fields:data.fields,parcels:data.parcels,plan:data.plan,
+      maps:data.maps,sources:data.sources,porchet:JSON.stringify(data.porchet),
+      cells:{sondages:data.sondages.map(item=>({fields:item.fields,slopes:item.slopes||[]}))},
+      reportCoverPhoto:data.illustration,
+    };
+    db.studies.push(study);
+    db.activeId=study.id;
+    if(!save(db))throw new Error("Stockage local indisponible.");
+    loadPorchet(study);
+    localStorage.removeItem("speedarti-anc-public-sprint4-v1");
+    await window.ANCPublicNavigate?.("dossier",true,{capture:false});
+    return study.id;
+  }
+  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction,getStudy:()=>current(read()),mutateStudy,cloudExport,cloudImport,openSpecimen};
 })();

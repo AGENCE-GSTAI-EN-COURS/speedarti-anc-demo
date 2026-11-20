@@ -156,6 +156,27 @@
       .replaceAll("/", "_").replaceAll("=", "");
   }
 
+  const specimenButton = document.querySelector("[data-anc-example]");
+  const specimenStatus = document.querySelector("[data-anc-example-status]");
+  specimenButton?.addEventListener("click", async () => {
+    specimenButton.disabled = true;
+    specimenStatus.textContent = "Chargement depuis Supabase…";
+    try {
+      const response = await fetch(endpoint + "/rest/v1/anc_demo_specimens?select=payload&id=eq.exemple-v1", {
+        headers: { apikey: publishableKey },
+        signal: AbortSignal.timeout(12000),
+      });
+      if (!response.ok) throw new Error("Lecture du dossier indisponible.");
+      const [record] = await response.json();
+      await adapter().openSpecimen(record?.payload);
+      specimenStatus.textContent = "Dossier Supabase ouvert. Cette copie peut être modifiée sur cet appareil.";
+    } catch (error) {
+      specimenStatus.textContent = "Impossible d’ouvrir le dossier Supabase. " + (error.message || "");
+    } finally {
+      specimenButton.disabled = false;
+    }
+  });
+
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     perform(async () => {

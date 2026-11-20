@@ -15,16 +15,16 @@
   <script defer src="./assets/demo-engine.js?v=20261102-1235"></script>
   <script defer src="./assets/public.js?v=20261106-safe-mount"></script>
   <script defer src="./assets/porchet-excel.js?v=20261102-1235"></script>
-  <script defer src="./assets/live-workflow.js?v=20261102-1235"></script>
-  <script defer src="./assets/map-gallery.js?v=20261106-mapsave1"></script>
+  <script defer src="./assets/live-workflow.js?v=exemple-supabase"></script>
+  <script defer src="./assets/map-gallery.js?v=exemple-supabase"></script>
   <script defer src="./assets/field-sources.js?v=20261105"></script>
   <script defer src="./assets/map-runtime.js?v=20261106-maplayers1"></script>
   <script defer src="./assets/geo-parcel.js?v=20261105-parcels-v3"></script>
   <script defer src="./assets/terrain-enrichment.js?v=20261105-altitude-r2"></script>
-  <script defer src="./assets/report-restoration.js?v=20261106-mapsave1"></script>
+  <script defer src="./assets/report-restoration.js?v=exemple-supabase"></script>
   <script defer src="./assets/live-controls.js?v=20261102-1235"></script>
 <style>.anc-real-map-target{min-height:330px;position:relative}.geo-map-frame{min-height:330px!important;height:auto!important}.anc-map-canvas{height:330px;width:100%;border-radius:9px;z-index:0}.anc-real-map-card{margin-bottom:20px}#anc-live-map-status{font-size:12px;padding:7px 10px;margin:0;min-height:24px}.anc-real-map-target .leaflet-container{font:inherit}</style>
-  <script defer src="./assets/anc-dev-sync.js?v=limite-liens" data-flow="demo"></script>
+  <script defer src="./assets/anc-dev-sync.js?v=exemple-supabase" data-flow="demo"></script>
 </head>
 <body>
 <div id="app">
@@ -45,6 +45,12 @@
     <nav class="tabs" id="public-tabs" aria-label="Navigation ANC V3"></nav>
     <main class="main">
       <div class="public-warning" role="note"><strong>SPÉCIMEN — Démonstration publique fidèle à l’ANC V3.</strong> Dossier entièrement fictif. Les champs saisis se conservent dans ce navigateur et alimentent le rapport. L’essai Porchet calcule selon la feuille Excel de Fred, sous réserve de validation professionnelle. Le géocodage et le cadastre utilisent des services publics lorsque disponibles ; les surfaces détectées sont à confirmer. Les calculs réglementaires avancés restent privés.</div>
+      <div class="card">
+        <div class="card-body">
+          <button type="button" class="btn primary" data-anc-example>Ouvrir le dossier d’exemple Supabase</button>
+          <p role="status" aria-live="polite" data-anc-example-status></p>
+        </div>
+      </div>
       <div id="public-sections" aria-live="polite"><p class="notice info">Chargement de la vue ANC V3…</p></div>
     </main>
   </div>

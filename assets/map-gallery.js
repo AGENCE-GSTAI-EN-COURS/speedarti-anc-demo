@@ -29,8 +29,9 @@ function mount(section){
    const card=document.createElement("article");card.className="map-card anc-saved-map-card";
    card.dataset.ancSavedMapId=item.id||item.kind;
    const h=document.createElement("h3");h.textContent=item.label||labels[item.kind]||item.kind;card.append(h);
-   if(item.url&&/^https:\/\//.test(item.url)){
-     const img=document.createElement("img");img.src=item.url;img.alt="Aperçu distant : "+h.textContent;
+   const frozen=typeof item.frozenImage==="string"&&/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(item.frozenImage)?item.frozenImage:null;
+   if(frozen || item.url&&/^https:\/\//.test(item.url)){
+     const img=document.createElement("img");img.src=frozen||item.url;img.alt=(frozen?"Image figée : ":"Aperçu distant : ")+h.textContent;
      img.loading="lazy";img.style.cssText="max-width:100%;min-height:100px;max-height:240px;object-fit:contain;background:#f1f7fb";
      img.addEventListener("error",()=>{
        img.replaceWith(Object.assign(document.createElement("p"),{className:"notice warn",
@@ -54,7 +55,7 @@ function mount(section){
    }
    card.append(details);
    const note=document.createElement("p");note.className="anc-source-note";
-   note.textContent="Composition enregistrée dans ce navigateur. Aperçu connecté au fournisseur, non figé et non certifié.";card.append(note);
+   note.textContent=frozen?"Image figée du dossier. Source : "+(item.source||"à confirmer"):"Composition enregistrée dans ce navigateur. Aperçu connecté au fournisseur, non figé et non certifié.";card.append(note);
    const actions=document.createElement("div");actions.className="anc-map-card-actions";
    const reopen=document.createElement("button");reopen.type="button";reopen.className="btn primary small";
    reopen.dataset.ancReopenMap=item.id||item.kind;reopen.textContent="Rouvrir / modifier dans Plan & métrés";
