@@ -15,3 +15,17 @@ test("Initialisation ANC Dossier — aucune exception masquée",async({page})=>{
  expect(state.error).toBeNull();
  expect(state.controls).toBe(true);
 });
+
+test("Le premier champ cadastral attend l’initialisation du dossier",async({page})=>{
+ await page.route("**/assets/geo-parcel.js?**",async route=>{
+   await new Promise(resolve=>setTimeout(resolve,600));
+   await route.continue();
+ });
+ await page.goto("/#dossier",{waitUntil:"commit"});
+ await page.locator(".anc-p-surface").first().fill("7100");
+ await page.locator("#anc-add-parcel").click();
+ await page.locator(".anc-p-surface").last().fill("300");
+ await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("7400");
+ await page.reload();
+ await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("7400");
+});
