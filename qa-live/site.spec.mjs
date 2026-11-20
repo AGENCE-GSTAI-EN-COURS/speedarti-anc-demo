@@ -1,5 +1,21 @@
 import {test,expect} from "@playwright/test";
 
+test("Dossier fictif publié — lecture Supabase sans connexion",async({page})=>{
+  await page.goto("?build=mission-2#etudes");
+  const response=page.waitForResponse(r=>r.url().includes("/rest/v1/anc_demo_specimens?"));
+  await page.getByRole("button",{name:"Ouvrir le dossier d’exemple Supabase"}).click();
+  expect((await response).status()).toBe(200);
+  await expect(page.locator("[data-anc-example-status]")).toContainText("Dossier Supabase ouvert");
+  await expect(page.locator('[data-path="reference"]')).toHaveValue("ANC-EXEMPLE-001");
+  await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1000");
+  await page.locator('#public-tabs [data-tab="sondages"]').click();
+  await expect(page.locator('[data-path="boreholes.1.label"]')).toHaveValue("S2");
+  await page.locator('#public-tabs [data-tab="photos"]').click();
+  await expect(page.getByAltText("Schéma fictif de la maison et des tranchées")).toBeVisible();
+  await page.locator('#public-tabs [data-tab="rapport"]').click();
+  await expect(page.locator("#report-pages")).toContainText("ANC-EXEMPLE-001");
+});
+
 test("Site GitHub Pages — la version publiée charge le moteur interactif",async({page})=>{
   await page.goto("?build=20261102#dossier",{waitUntil:"domcontentloaded"});
   await expect(page.locator("#dossier")).toBeVisible();

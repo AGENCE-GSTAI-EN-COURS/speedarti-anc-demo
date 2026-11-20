@@ -83,6 +83,7 @@ function makeLayer(d){
  });
  return L.tileLayer.wms(d.url,{
    layers:d.layer,version:d.url===IGN?"1.3.0":"1.1.1",format:"image/png",
+   crs:d.url===IGN?L.CRS.EPSG3857:L.CRS.EPSG4326,
    transparent:overlayDefs.some(o=>o.id===d.id),
    opacity:d.opacity??1,attribution:d.source||d.label,maxZoom:20,
    crossOrigin:"anonymous"
@@ -255,6 +256,16 @@ function mount(section){
      }
    });
    L.control.scale({metric:true,imperial:false,position:"bottomleft"}).addTo(map);
+   const north=L.control({position:"bottomright"});
+   north.onAdd=()=>{
+     const mark=document.createElement("span");
+     mark.textContent="↑ N";
+     mark.setAttribute("aria-label","Nord géographique");
+     mark.className="leaflet-bar";
+     mark.style.cssText="background:#fff;color:#173047;padding:3px 6px;font-weight:700";
+     return mark;
+   };
+   north.addTo(map);
    if(coords){
      marker=L.marker(coords,{draggable:false}).addTo(map).bindPopup("Position du chantier — à confirmer");
      marker.on("dragend",()=>{if(pickerMode){const p=marker.getLatLng();previewPoint(p.lat,p.lng);}});
@@ -327,6 +338,8 @@ function saveMap(){
  if(!map||!s?.id||s.id!==activeStudyId){saveStatus("Impossible d'enregistrer : aucun dossier ou carte active.",true);return;}
  const b=map.getBounds();
  if(!b.isValid()){saveStatus("Le cadrage cartographique n'est pas valide.",true);return;}
+ const size=map.getSize();
+ const widthM=size.x>0?map.distance(map.containerPointToLatLng([0,size.y/2]),map.containerPointToLatLng([size.x,size.y/2])):null;
  const m=meta(),center=map.getCenter(),bounds=[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()];
  const view=views.find(v=>v.id===activeView),id="anc_map_"+Date.now()+"_"+Math.random().toString(36).slice(2,6);
  const record={
@@ -335,7 +348,7 @@ function saveMap(){
      ...[...activeOverlays].map(id=>overlayDefs.find(d=>d.id===id)?.source)
    ].filter(Boolean))].join(" + "),
    base:m.base,overlays:m.overlays,opacity:m.opacity,
-   center:[center.lat,center.lng],bounds,zoom:map.getZoom(),
+   center:[center.lat,center.lng],bounds,zoom:map.getZoom(),widthM,scaleVerified:false,
    url:previewUrl(bounds),imageArchived:false,
    studyId:s.id,parcelReference:[s.fields?.["parcel.section"],s.fields?.["parcel.number"]].filter(Boolean).join(" "),
    status:coordinates()?"TO_CONFIRM":"TO_LOCALIZE",savedAt:new Date().toISOString()

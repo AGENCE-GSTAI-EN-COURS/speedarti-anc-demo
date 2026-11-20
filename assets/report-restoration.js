@@ -52,7 +52,7 @@ function build(st){
        maps=Array.isArray(st.maps)?st.maps:[],src=st.sources||{},
        surveys=boreholes(st),tests=porchetSheets(st),ter=st.terrainSources||{};
  const person=owner(f),where=address(f),ref=value(f,"reference")||st.id,office=value(f,"company.name")||"Bureau d’études — à identifier";
- const parcelRows=parcels.filter(p=>p.section||p.number||p.area).map(p=>[p.section,p.number,p.area,p.source||"À confirmer"]);
+ const parcelRows=parcels.filter(p=>p.section||p.number||p.area).map(p=>[p.section,p.number,p.area,p.source||"À confirmer",p.checkedAt?date(p.checkedAt):""]);
  const surveyRows=surveys.map(x=>[x.name,x.depth,x.className,x.horizons.length+" horizon(s) saisi(s)"]);
  const testRows=tests.map(x=>{
    const r=x.result||{};
@@ -95,11 +95,11 @@ function build(st){
    '<p>Toutes les informations client proviennent de la fiche du dossier courant. Aucun client fictif n’est ajouté si une donnée manque.</p>'));
  chapters.push(chapter("parcelles","1.1 Identification cadastrale",
    '<p>Références cadastrales renseignées ou détectées sur la parcelle sélectionnée. Le contour et la contenance doivent être confirmés avec les données officielles.</p>'+
-   tab(["Section","Numéro","Surface (m²)","Provenance"],parcelRows)+
-   info([["Surface cadastrale totale (m²)",value(f,"parcel.totalArea")],["Surface potentiellement disponible ANC (m²)",value(f,"parcel.availableArea")],["Latitude WGS84",value(f,"parcel.lat")],["Longitude WGS84",value(f,"parcel.lng")]])+
+   tab(["Section","Numéro","Surface (m²)","Provenance","Date"],parcelRows)+
+   info([["Somme des contenances renseignées (m²)",value(f,"parcel.totalArea")],["État des superficies",value(f,"parcel.areaCompleteness")],["Surface potentiellement disponible ANC (m²)",value(f,"parcel.availableArea")],["Latitude WGS84",value(f,"parcel.lat")],["Longitude WGS84",value(f,"parcel.lng")]])+
    '<p>La surface disponible ANC n’est jamais déduite automatiquement de la surface cadastrale seule.</p>'));
  chapters.push(chapter("habitation","1.2 Habitation et dimensionnement initial",
-   info([["Pièces principales",value(f,"building.mainRooms")],["Occupants",value(f,"building.occupants")],["Usage",value(f,"building.use")],["Type d’habitation",value(f,"building.type")],["Projet neuf ou réhabilitation",value(f,"project.workType")],["Équivalent-habitants retenu",value(f,"design.eh")]])+
+   info([["Pièces principales",value(f,"building.mainRooms")],["Occupants",value(f,"building.occupants")],["Usage",value(f,"building.use")],["Type d’habitation",value(f,"building.type")],["Projet neuf ou réhabilitation",value(f,"project.workType")],["Équivalent-habitants renseigné",value(f,"design.eh","building.eh")]])+
    '<p>Le dimensionnement final dépend des règles en vigueur et de la validation professionnelle ; il ne peut être déterminé à partir des seules données cadastrales.</p>'+validation));
  chapters.push(chapter("visite","1.3 Visite terrain et accès",
    info([["Date",value(f,"visit.studyDate")],["Technicien",value(f,"visit.technician")],["Météo observée",value(f,"visit.weather")],["Observations terrain",value(f,"visit.notes")],["Topographie",value(f,"parcel.topography")],["Accès et contraintes chantier",value(f,"terrain.access")]])+
@@ -202,20 +202,25 @@ function build(st){
      }catch{}
    }
    chapters.push(chapter("map-"+kind,label,
-     '<p><strong>Source :</strong> '+safe(m?.source)+'</p>'+ 
+     '<p><strong>Source :</strong> '+safe(m?.frozenSource||m?.source)+'</p>'+
      '<p><strong>Composition sauvegardée :</strong> '+safe(m?.label||kind)+
      ' — filtres : '+safe((m?.overlays||[]).join(', '))+
      ' — cadrage : '+safe(Array.isArray(m?.center)?m.center.map(x=>Number(x).toFixed(5)).join(', '):'')+
      ' — zoom : '+safe(m?.zoom)+'</p>'+
      (img||'<div style="height:110mm;border:1px dashed #bfcee0;display:grid;place-items:center;color:#6e8496">Carte non enregistrée ou non disponible — à joindre</div>')+
-     '<p>Statut : '+safe(m?.status||"À enregistrer")+' — date de sauvegarde : '+safe(m?.savedAt?date(m.savedAt):"")+'</p>'+
-     '<p>Vue enregistrée dans le dossier avec ses couches et son cadrage. L’image distante est un aperçu partiel : seules les couches du même fournisseur peuvent être représentées sur cet aperçu. Les cartes doivent être figées, contrôlées et légendées avant signature.</p>'));
+     '<p>Statut : '+safe(m?.status||"À enregistrer")+' — date de sauvegarde : '+safe(m?.savedAt?date(m.frozenAt||m.savedAt):"")+'</p>'+
+     (m?.frozenImage?'<p>Image figée jointe au dossier. Échelle et provenance à contrôler avant signature.</p>':'<p>Vue enregistrée dans le dossier avec ses couches et son cadrage. L’image distante est un aperçu partiel : seules les couches du même fournisseur peuvent être représentées sur cet aperçu. Les cartes doivent être figées, contrôlées et légendées avant signature.</p>')));
  }
- const photoCount=Array.isArray(st.cells?.photos)?st.cells.photos.length:0;
+ const photos=(Array.isArray(st.photos)?st.photos:[]).filter(p=>typeof p.data==="string"&&
+   /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(p.data));
  chapters.push(chapter("photos","Annexe 6 — Photographies",
-    '<p>Photographies effectivement rattachées au dossier : <strong>'+photoCount+'</strong>.</p>'+
-    (photoCount?'<p>Les photos sont à vérifier dans la bibliothèque du dossier ; aucune image fictive n’est ajoutée.</p>':
-       '<div style="height:130mm;border:1px dashed #bfcee0;display:grid;place-items:center;color:#6e8496">Aucune photographie enregistrée — annexe à compléter</div>')));
+    '<p>Photographies rattachées à ce dossier : <strong>'+photos.length+'</strong>.</p>'+
+    (photos.length?'':'<p>Aucune photographie enregistrée — annexe à compléter.</p>')));
+ photos.forEach((p,i)=>{
+   chapters.push(chapter("photo-"+i,"Annexe 6."+ (i+1)+" — "+(p.name||"Photographie"),
+     '<figure><img src="'+p.data+'" alt="'+esc(p.name||"Photo du dossier")+'" style="max-width:100%;max-height:145mm">'+
+     '<figcaption>'+safe(p.caption)+'</figcaption></figure><p>Date d’ajout : '+safe(p.addedAt?date(p.addedAt):"")+'</p>'));
+ });
  chapters.push(chapter("sources","Annexe 7 — Sources, références et traçabilité",
     tab(["Donnée","Source","Statut/date"],[
       ["Cadastre",parcels.find(p=>p.status==="AUTO_DETECTED")?.source||"À vérifier",st.userSelectedParcel?.selectedAt?date(st.userSelectedParcel.selectedAt):"Non validé"],
@@ -302,6 +307,14 @@ function exportWord(section){
  const url=URL.createObjectURL(blob),a=document.createElement("a");
  a.href=url;a.download="ANC_"+ref.replace(/[^a-z0-9_-]/gi,"_")+".doc";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+async function printReport(){
+ const images=[...document.querySelectorAll("#report-pages img")];
+ await Promise.race([
+   Promise.allSettled(images.map(img=>img.decode())),
+   new Promise(resolve=>setTimeout(resolve,2500)),
+ ]);
+ window.print();
+}
 function handle(event){
  const button=event.target.closest("button");
  if(!button||!button.closest("#rapport"))return false;
@@ -319,7 +332,7 @@ function handle(event){
  if(button.dataset.action==="export-word"){exportWord(section);return true;}
  if(button.dataset.action==="print"){
    // L'impression suit le mode explicitement sélectionné ; ancien modèle = FILIGRANE SPÉCIMEN.
-   window.print();return true;
+   void printReport();return true;
  }
  return false;
 }
@@ -348,5 +361,5 @@ document.addEventListener("change",event=>{
  const el=event.target;
  if(el?.id==="anc-report-cover-photo"){void importCoverPhoto(el.files?.[0]);}
 });
-window.ANCReportRestoration={mount,handle,generate,showHistory};
+window.ANCReportRestoration={mount,handle,printReport,generate,showHistory};
 })();

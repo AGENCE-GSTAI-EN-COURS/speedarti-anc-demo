@@ -12,7 +12,14 @@
   const id=()=>("ANC-"+Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,7));
   const fresh=(title="Nouvelle étude de démonstration")=>({id:id(),name:title,createdAt:new Date().toISOString(),fields:{},cells:{},toggles:{},porchet:null,archived:false,isNew:true});
   function initial(){const example=fresh("Étude ANC — exemple");example.isNew=false;return {version:1,activeId:example.id,studies:[example],clients:[],updatedAt:new Date().toISOString()};}
-  function read(){try{const data=JSON.parse(localStorage.getItem(KEY)||"null");return data?.version===1&&Array.isArray(data.studies)?data:initial();}catch{return initial()}}
+  function read(){
+    let data;
+    try{data=JSON.parse(localStorage.getItem(KEY)||"null");}catch{}
+    if(data?.version===1&&Array.isArray(data.studies)&&data.studies.length)return data;
+    const initialState=initial();
+    try{localStorage.setItem(KEY,JSON.stringify(initialState));}catch{}
+    return initialState;
+  }
   function save(db){db.updatedAt=new Date().toISOString();try{localStorage.setItem(KEY,JSON.stringify(db));return true}catch{notice("Enregistrement impossible : espace de stockage insuffisant.");return false}}
   function current(db){return db.studies.find(x=>x.id===db.activeId)||db.studies[0]}
   function notice(message){
@@ -84,17 +91,7 @@
     return save(db);
   }
   function updateParcelTotal(){
-    const section=$("#dossier");if(!section)return;
-    const inputs=$$(".anc-p-surface",section);
-    const amounts=inputs.map(el=>Number(String(el.value||"").replace(",","."))).filter(x=>Number.isFinite(x)&&x>=0);
-    if(!amounts.length)return;
-    const total=amounts.reduce((a,b)=>a+b,0);
-    const target=$("#anc-parcel-total",section);
-    if(target)target.textContent=new Intl.NumberFormat("fr-FR",{maximumFractionDigits:2}).format(total)+" m²";
-    const field=$('[data-path="parcel.totalArea"]',section);
-    if(field)field.value=String(total);
-    const db=read(),study=current(db);
-    if(study){study.fields["parcel.totalArea"]=String(total);save(db)}
+    if($("#anc-parcel-total"))window.ANCGeoParcel?.updateTotals();
   }
   function storeCellSnapshot(section){
     const db=read(),study=current(db);
@@ -109,6 +106,32 @@
     }
     storePorchet(db);save(db);
   }
+  function structuredBorehole(template,fields,index){
+    if(!template)return null;
+    const card=template.cloneNode(true);
+    const reindex=window.ANCDemoEngine?.reindex;
+    if(!reindex)return null;
+    reindex(card,index,0,null,null);
+    const horizons=$$(".horizon",card);
+    const horizonTemplate=horizons[0]?.cloneNode(true);
+    if(horizonTemplate){
+      const anchor=document.createComment("horizons du dossier");
+      horizons[0].before(anchor);
+      horizons.forEach(horizon=>horizon.remove());
+      const indexes=[...new Set(Object.keys(fields).map(key=>key.match(/\.horizons\.(\d+)\./)?.[1])
+        .filter(value=>value!==undefined).map(Number))].sort((a,b)=>a-b);
+      for(const horizonIndex of indexes){
+        const horizon=horizonTemplate.cloneNode(true);
+        reindex(horizon,index,index,horizonIndex,0);
+        const number=$(".horizon-num",horizon);if(number)number.textContent=String(horizonIndex+1);
+        anchor.before(horizon);
+      }
+      anchor.remove();
+    }
+    const title=$(".item-card-head strong",card);
+    if(title)title.textContent="Sondage "+(fields["boreholes."+index+".label"]||"S"+(index+1));
+    return card;
+  }
   function restoreBoreholes(section){
     const study=current(read());
     const cards=study?.cells?.sondages;
@@ -119,7 +142,7 @@
     const templates=$$(".item-card",list);
     for(const [index,item] of cards.entries()){
       const doc=item.html?parser.parseFromString(item.html,"text/html"):null;
-      const node=doc?doc.querySelector(".item-card"):templates[index]?.cloneNode(true);if(!node)continue;
+      const node=doc?doc.querySelector(".item-card"):structuredBorehole(templates[0],item.fields,index);if(!node)continue;
       node.querySelectorAll("script,iframe,object,embed").forEach(x=>x.remove());
       for(const el of node.querySelectorAll("*")){
         for(const att of Array.from(el.attributes)){
@@ -432,9 +455,9 @@
     if(slug==="sondages"){restoreBoreholes(section);syncMultiselects(section)}
     if(slug==="geometrie")plan(section);
     if(slug==="etudes")studiesPanel(section);
-    if(slug==="photos")specimenIllustration(section);
+    if(slug==="photos")mountPhotos(section);
     if(slug==="clients")clientsPanel(section);
-    if(slug==="rapport")report(section);
+    if(slug==="rapport"&&!window.ANCReportRestoration?.mount)report(section);
     const db=read(),st=current(db);
     if(st){$("[data-live-current-study]")?.replaceChildren(document.createTextNode(st.name))}
     status(true);
@@ -473,9 +496,50 @@
     notice(ok?"Version du dossier enregistrée dans ce navigateur.":"Impossible d'enregistrer la version.");
     return true;
   }
+  const safeImage=value=>typeof value==="string"&&value.length<950000&&
+    /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(value)?value:null;
+  function cleanSnapshot(st,{images=false}={}){
+    const normalized=JSON.parse(JSON.stringify(st),(key,value)=>
+      ["__proto__","prototype","constructor","html"].includes(key)?undefined:value);
+    const clean={};
+    for(const key of ["id","name","fields","clientId","createdAt","archived","isNew","specimen",
+      "porchet","plan","parcels","cadastralGeometry","geolocation","sources","terrainSources",
+      "toggles","mapView","maps","userSelectedParcel","versions"]){
+      if(Object.hasOwn(normalized,key))clean[key]=normalized[key];
+    }
+    clean.cells={sondages:Array.isArray(normalized.cells?.sondages)?normalized.cells.sondages
+      .slice(0,50).filter(item=>item?.fields&&typeof item.fields==="object")
+      .map(item=>({fields:item.fields,slopes:Array.isArray(item.slopes)?item.slopes:[]})):[]};
+    if(!Array.isArray(clean.parcels))delete clean.parcels;
+    if(clean.fields&&typeof clean.fields==="object"&&!Array.isArray(clean.fields)){
+      clean.fields=Object.fromEntries(Object.entries(clean.fields).filter(([key,value])=>
+        key.length<131&&(typeof value==="string"||typeof value==="number"||typeof value==="boolean"||Array.isArray(value))));
+    }
+    clean.maps=Array.isArray(clean.maps)?clean.maps.filter(m=>m&&typeof m.id==="string").slice(0,100).map(m=>{
+      const map={...m,overlays:Array.isArray(m.overlays)?m.overlays.filter(id=>typeof id==="string"):[]};
+      if(typeof map.url==="string"){
+        try{
+          const url=new URL(map.url);
+          if(url.protocol!=="https:"||!["data.geopf.fr","geoservices.brgm.fr"].includes(url.hostname))delete map.url;
+        }catch{delete map.url;}
+      }else delete map.url;
+      const image=images?safeImage(m.frozenImage):null;
+      if(image)map.frozenImage=image;
+      else delete map.frozenImage;
+      return map;
+    }):[];
+    if(images){
+      clean.reportCoverPhoto=safeImage(normalized.reportCoverPhoto);
+      clean.photos=Array.isArray(normalized.photos)?normalized.photos
+        .filter(p=>p&&safeImage(p.data)).map(p=>({name:String(p.name||""),caption:String(p.caption||""),data:p.data,addedAt:p.addedAt})):[];
+    }else if(clean.sources?.risks)delete clean.sources.risks.raw;
+    return clean;
+  }
   function exportedData(){
     beforeNavigate();
-    const body=JSON.stringify({type:"ANC_DEMONSTRATION_V3",version:1,data:read()},null,2);
+    const db=read();
+    const body=JSON.stringify({type:"ANC_DEMONSTRATION_V3",version:1,
+      data:{...db,studies:db.studies.map(study=>cleanSnapshot(study,{images:true}))}});
     const blob=new Blob([body],{type:"application/json"});
     const uri=URL.createObjectURL(blob);
     const a=document.createElement("a");
@@ -500,23 +564,15 @@
           version:1,activeId:db.activeId,updatedAt:new Date().toISOString(),
           studies:db.studies.map(st=>{
             if(typeof st.id!=="string"||st.id.length>100)throw Error("Identifiant invalide.");
-            const validFields={};
-            if(!st.fields||typeof st.fields!=="object")throw Error("Champs absents.");
-            for(const [k,v] of Object.entries(st.fields)){
-              if(k.length>130||typeof v!=="string"&&typeof v!=="number"&&typeof v!=="boolean"&&!Array.isArray(v))
-                throw Error("Champ incorrect.");
-              validFields[k]=Array.isArray(v)?v.filter(x=>typeof x==="string").slice(0,80):v;
-            }
-            // Les fragments HTML tiers ne sont pas importés (protection XSS).
-            return {id:st.id,name:String(st.name||"Étude importée").slice(0,160),
-              fields:validFields,cells:{},toggles:{},
+            if(!st.fields||typeof st.fields!=="object"||Array.isArray(st.fields))throw Error("Champs absents.");
+            const snapshot=cleanSnapshot(st,{images:true});
+            return {...snapshot,id:st.id,name:String(st.name||"Étude importée").slice(0,160),
               porchet:typeof st.porchet==="string"&&st.porchet.length<120000?st.porchet:null,
-              archived:!!st.archived,createdAt:String(st.createdAt||""),
-              versions:[]};
+              archived:!!st.archived,isNew:true,createdAt:String(st.createdAt||"")};
           }),
-          clients:db.clients.map(c=>({
-            id:String(c.id||id()),firstName:String(c.firstName||"").slice(0,120),
-            lastName:String(c.lastName||"").slice(0,120),city:String(c.city||"").slice(0,120)
+          clients:db.clients.filter(c=>c&&typeof c==="object").map(c=>({
+            id:String(c.id||id()).slice(0,100),
+            ...Object.fromEntries(CLIENT_INPUTS.map(([key])=>[key,String(c[key]??"").slice(0,250)])),
           }))
         };
         if(!save(clean))throw Error("Stockage local indisponible.");
@@ -600,13 +656,12 @@
     if(el.closest(".axis-touch-soils")&&el.matches('input[type="checkbox"]'))onMultiSelect(el);
     if(el.dataset?.path&&el.closest("#public-sections"))commitElement(el);
   },true);
-  function mutateStudy(callback){const db=read(),st=current(db);if(!st)return null;callback(st);save(db);return st;}
+  function mutateStudy(callback){const db=read(),st=current(db);if(!st)return null;callback(st);return save(db)?st:null;}
   function cloudExport(){
     beforeNavigate();
     const study=current(read());
     if(!study)return null;
-    const {id,name,createdAt,fields,toggles,porchet,plan}=study;
-    return {id,name,createdAt,fields,toggles,porchet,plan};
+    return cleanSnapshot(study);
   }
   async function cloudImport(data){
     if(typeof data?.id!=="string"||typeof data.name!=="string"||!data.fields||typeof data.fields!=="object"){
@@ -614,12 +669,18 @@
     }
     beforeNavigate();
     const db=read();
-    const {
-      id:studyId,name,createdAt,fields,toggles,plan,
-      porchet,
-    }=data;
-    const restored={id:studyId,name,createdAt,fields,toggles,plan,porchet,cells:{},isNew:true,archived:false};
+    const studyId=data.id;
     const index=db.studies.findIndex(study=>study.id===studyId);
+    const restored={...cleanSnapshot(data),id:studyId,isNew:true,archived:false};
+    if(index>=0){
+      const local=db.studies[index];
+      restored.photos=local.photos;
+      restored.reportCoverPhoto=local.reportCoverPhoto;
+      for(const map of restored.maps){
+        const old=local.maps?.find(item=>item.id===map.id);
+        if(old?.frozenImage)map.frozenImage=old.frozenImage;
+      }
+    }
     if(index<0)db.studies.push(restored);
     else db.studies[index]=restored;
     db.activeId=studyId;
@@ -629,18 +690,33 @@
     await window.ANCPublicNavigate?.("dossier",true,{capture:false});
     return studyId;
   }
-  function specimenIllustration(section){
-    const st=current(read());
-    if(!st?.specimen || !st.reportCoverPhoto)return;
+  function mountPhotos(section){
+    section.querySelector("[data-anc-dossier-photos]")?.remove();
+    const st=current(read());if(!st)return;
+    const photos=Array.isArray(st.photos)?st.photos:[];
     const card=document.createElement("article");
     card.className="card";
-    const caption=document.createElement("p");
-    caption.textContent="Illustration du dossier fictif. Aucune photographie de terrain.";
-    const image=document.createElement("img");
-    image.src=st.reportCoverPhoto;
-    image.alt="Schéma fictif de la maison et des tranchées";
-    image.style.maxWidth="100%";
-    card.append(caption,image);
+    card.dataset.ancDossierPhotos="1";
+    const body=document.createElement("div");body.className="card-body";
+    const heading=document.createElement("h2");heading.textContent="Photos de ce dossier";
+    body.append(heading);
+    if(st.specimen&&st.reportCoverPhoto){
+      const caption=document.createElement("p");
+      caption.textContent="Illustration du dossier fictif. Aucune photographie de terrain.";
+      const image=document.createElement("img");image.src=st.reportCoverPhoto;
+      image.alt="Schéma fictif de la maison et des tranchées";image.style.maxWidth="100%";
+      body.append(caption,image);
+    }
+    for(const photo of photos){
+      if(typeof photo?.data!=="string"||!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(photo.data))continue;
+      const figure=document.createElement("figure");
+      const image=document.createElement("img");image.src=photo.data;image.alt=photo.name||"Photo du dossier";
+      image.style.cssText="max-width:100%;max-height:240px";
+      const caption=document.createElement("figcaption");caption.textContent=photo.caption+" — "+photo.name;
+      figure.append(image,caption);body.append(figure);
+    }
+    if(!photos.length&&!st.specimen){const p=document.createElement("p");p.textContent="Aucune photo enregistrée.";body.append(p);}
+    card.append(body);
     section.querySelector(".section-head")?.after(card);
   }
   async function openSpecimen(data){
@@ -665,5 +741,5 @@
     await window.ANCPublicNavigate?.("dossier",true,{capture:false});
     return study.id;
   }
-  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction,getStudy:()=>current(read()),mutateStudy,cloudExport,cloudImport,openSpecimen};
+  window.ANCRealWorkflow={mount,beforeNavigate,handle:action,report,topAction,getStudy:()=>current(read()),mutateStudy,cloudExport,cloudImport,openSpecimen,mountPhotos};
 })();

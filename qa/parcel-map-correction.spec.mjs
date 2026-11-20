@@ -89,3 +89,14 @@ test("Accès à la correction parcellaire depuis Plans & métrés",async({page})
  await expect(page.locator('[data-path="parcel.section"]')).toHaveValue("BD");
  await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("750");
 });
+
+test("Ajouter une deuxième parcelle conserve la principale, la provenance et la somme",async({page})=>{
+ await prepare(page);
+ await clickDifferentParcelPoint(page);
+ await page.locator('[data-anc-map-add]').click();
+ await expect(page.locator('[data-path="parcel.section"]')).toHaveValue("AC");
+ await expect(page.locator('[data-path="parcel.totalArea"]')).toHaveValue("1239");
+ await expect(page.locator('.anc-v3-parcel')).toHaveCount(2);
+ const parcels=await page.evaluate(()=>window.ANCRealWorkflow.getStudy().parcels);
+ expect(parcels.every(p=>p.source.includes("IGN")&&Number.isFinite(Date.parse(p.checkedAt)))).toBe(true);
+});

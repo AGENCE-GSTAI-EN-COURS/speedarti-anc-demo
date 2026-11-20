@@ -232,22 +232,23 @@ function brgm(button){
   queueSave();text("Recherche BRGM simulée avec le contexte fictif du dossier.");
 }
 function imagePicker(label){
-  const el=document.createElement("input");el.type="file";el.accept="image/*";el.style.display="none";
-  document.body.appendChild(el);
+  const studyId=window.ANCRealWorkflow?.getStudy?.()?.id;
+  const el=document.createElement("input");el.type="file";el.accept="image/jpeg,image/png,image/webp";
   el.addEventListener("change",async()=>{
-    const file=el.files?.[0];if(!file){el.remove();return}
+    const file=el.files?.[0];if(!file)return;
     try{
       const data=await imageData(file);
-      const section=$("#public-sections section");if(!section)return;
-      const card=document.createElement("article");card.className="map-card s4-photo-sample";
-      const head=document.createElement("div");head.className="map-preview";
-      const img=document.createElement("img");img.src=data;img.alt=file.name;img.style.maxHeight="220px";head.append(img);
-      const desc=document.createElement("div");desc.className="map-card-body";
-      desc.textContent=label+" — "+file.name+" (photo enregistrée dans cette démo)";
-      card.append(head,desc);section.append(card);queueSave();
+      if(!studyId||window.ANCRealWorkflow?.getStudy?.()?.id!==studyId){
+        return text("Le dossier actif a changé. La photographie n’a pas été ajoutée.");
+      }
+      const saved=window.ANCRealWorkflow.mutateStudy(study=>{
+        study.photos??=[];
+        study.photos.push({name:file.name,caption:label,data,addedAt:new Date().toISOString()});
+      });
+      if(!saved)throw Error("Stockage du dossier indisponible.");
+      const section=$("#photos");if(section)window.ANCRealWorkflow.mountPhotos(section);
       text("Photo ajoutée au dossier fictif.");
     }catch(error){text("Image non utilisable : "+error.message)}
-    finally{el.remove()}
   },{once:true});
   el.click();
 }
@@ -407,5 +408,5 @@ document.addEventListener("input",e=>{
 document.addEventListener("change",e=>{
   if(e.target.closest("#public-sections")&&e.target.matches("input:not([type=file]),select,textarea"))queueSave();
 });
-window.ANCDemoEngine={mount,saveCurrent,handle,topAction,addHorizonButtons,makeSlope};
+window.ANCDemoEngine={mount,saveCurrent,handle,topAction,addHorizonButtons,makeSlope,imageData,reindex};
 })();

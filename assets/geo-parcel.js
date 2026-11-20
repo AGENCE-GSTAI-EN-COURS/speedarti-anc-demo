@@ -105,53 +105,71 @@ function message(m,error=false){
 function normalizeArea(r){
   const p=r.properties||{};
   for(const key of ["contenance","surface_m2","surface","surface_cadastre","contenance_cadastrale","surface_parcelle"]){
-    const v=num(p[key]);if(v!==null&&v>0)return {area:Math.round(v),exact:key==="contenance"};
+    const v=num(p[key]);if(v!==null&&v>0)return {area:v,origin:key.startsWith("contenance")?"official":"reported"};
   }
-  return {area:geometryArea(r.geometry),exact:false};
+  const area=geometryArea(r.geometry);
+  return {area,origin:area===null?"unavailable":"geometry"};
+}
+function areaSource(area){
+  return ({
+    official:"Cadastre IGN — contenance source",
+    reported:"Cadastre IGN — surface déclarée dans la réponse",
+    geometry:"Cadastre IGN — surface géométrique indicative",
+    unavailable:"Cadastre IGN — surface indisponible",
+  })[area.origin];
 }
 function ringArea(ring){
-  if(!Array.isArray(ring)||ring.length<4)return 0;
-  const centerLat=ring.reduce((s,p)=>s+p[1],0)/ring.length;
+  if(!Array.isArray(ring)||ring.length<4||ring.some(p=>!Array.isArray(p)||p.length<2||
+     !Number.isFinite(p[0])||!Number.isFinite(p[1])||Math.abs(p[0])>180||Math.abs(p[1])>=90))return null;
+  const [x,y]=ring[0],end=ring.at(-1);
+  if(end[0]!==x||end[1]!==y)return null;
+  const centerLat=ring.reduce((sum,p)=>sum+p[1],0)/ring.length;
   const mx=111320*Math.cos(centerLat*Math.PI/180),my=111132;
   let sum=0;
-  for(let i=0;i<ring.length;i++){
-    const a=ring[i],b=ring[(i+1)%ring.length];
-    sum+=(a[0]*mx)*(b[1]*my)-(b[0]*mx)*(a[1]*my);
+  for(let i=1;i<ring.length;i++){
+    const a=ring[i-1],b=ring[i];
+    sum+=((a[0]-x)*(b[1]-y)-(b[0]-x)*(a[1]-y))*mx*my;
   }
   return Math.abs(sum)/2;
 }
 function geometryArea(geom){
-  if(!geom)return null;
-  const polygons=geom.type==="Polygon"?[geom.coordinates]:geom.type==="MultiPolygon"?geom.coordinates:[];
-  const surface=polygons.reduce((sum,rings)=>sum+Math.max(0,ringArea(rings[0])-(rings.slice(1).reduce((a,b)=>a+ringArea(b),0))),0);
-  return surface>0?Math.round(surface):null;
+  const polygons=geom?.type==="Polygon"?[geom.coordinates]:geom?.type==="MultiPolygon"?geom.coordinates:null;
+  if(!Array.isArray(polygons)||!polygons.length)return null;
+  let surface=0;
+  for(const rings of polygons){
+    if(!Array.isArray(rings)||!rings.length)return null;
+    const [outer,...holes]=rings.map(ringArea);
+    if(!outer||holes.includes(null))return null;
+    const area=outer-holes.reduce((sum,hole)=>sum+hole,0);
+    if(area<=0)return null;
+    surface+=area;
+  }
+  return Math.round(surface)||null;
 }
 function currentParcels(){
   const s=get();return Array.isArray(s?.parcels)?s.parcels:[];
 }
 function updateTotals(){
-  const arr=currentParcels();
-  const current=get(),geom=current?.cadastralGeometry;
-  // Surface géométrique indicative si l'API ne donne pas la contenance.
-  if(geom){
-    const detected=arr.find(p=>p.status==="AUTO_DETECTED");
-    if(detected&&!(num(detected.area)>0)){
-      const area=geometryArea(geom);
-      if(area!==null&&area>0)mutate(st=>{
-        const parcel=st.parcels?.find(p=>p.id===detected.id);
-        if(parcel){parcel.area=area;parcel.source="Cadastre IGN — surface géométrique indicative";}
-      });
-    }
+  const parcels=currentParcels().filter(p=>p.section||p.number||num(p.area)!==null);
+  const unique=new Map();
+  for(const parcel of parcels){
+    const key=parcel.section&&parcel.number?parcel.section.trim().toUpperCase()+" "+parcel.number.trim():parcel.id;
+    const existing=unique.get(key);
+    if(!existing||!(num(existing.area)>0))unique.set(key,parcel);
   }
-  const fresh=currentParcels();
+  const fresh=[...unique.values()];
   const known=fresh.map(p=>num(p.area)).filter(v=>v!==null&&v>0);
   const total=known.reduce((a,b)=>a+b,0);
-  const el=$("#anc-parcel-total");if(el)el.textContent=known.length?total.toLocaleString("fr-FR",{maximumFractionDigits:2})+" m²":"Surface à renseigner";
+  const partial=known.length>0&&known.length<fresh.length;
+  const completeness=partial?"Total partiel : certaines contenances sont indisponibles.":known.length?"Toutes les contenances saisies ou détectées sont prises en compte.":"Surface non déterminée.";
+  const el=$("#anc-parcel-total");
+  if(el)el.textContent=known.length?total.toLocaleString("fr-FR",{maximumFractionDigits:2})+" m²"+(partial?" (partiel)":""):"Surface à renseigner";
   const field=$('[data-path="parcel.totalArea"]');
   if(field){field.value=known.length?String(total):"";field.readOnly=true;field.title="Calculée automatiquement depuis la liste des parcelles";}
   mutate(s=>{
     s.fields=s.fields||{};
     s.fields["parcel.totalArea"]=known.length?String(total):"";
+    s.fields["parcel.areaCompleteness"]=completeness;
     const first=s.parcels?.find(p=>p.status==="AUTO_DETECTED")||s.parcels?.find(p=>p.section&&p.number);
     if(first){s.fields["parcel.section"]=String(first.section||"");s.fields["parcel.number"]=String(first.number||"");s.fields["parcel.area"]=num(first.area)===null?"":String(first.area);}
   });
@@ -245,7 +263,7 @@ function editParcel(el){
   if(!key)return;
   mutate(st=>{
     const p=(st.parcels||[]).find(x=>x.id===id);
-    if(p){p[key]=el.value;p.status="TO_CONFIRM";p.source="Saisie manuelle";}
+    if(p){p[key]=el.value;p.status="TO_CONFIRM";p.source="Saisie manuelle";p.checkedAt=new Date().toISOString();}
   });
   const status=$(".anc-v3-status",row);if(status)status.textContent="TO_CONFIRM";
   updateTotals();
@@ -284,9 +302,11 @@ function showParcelSelectionPanel(text,options=[]){
  const controls=document.createElement("div");controls.style.cssText="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px";
  const confirm=document.createElement("button");confirm.type="button";confirm.className="btn primary";
  confirm.dataset.ancMapConfirm="1";confirm.textContent="Confirmer cette parcelle";
+ const add=document.createElement("button");add.type="button";add.className="btn secondary";
+ add.dataset.ancMapAdd="1";add.textContent="Ajouter à l’étude";
  const cancel=document.createElement("button");cancel.type="button";cancel.className="btn secondary";
  cancel.dataset.ancMapCancel="1";cancel.textContent="Annuler";
- controls.append(confirm,cancel);panel.append(controls);
+ controls.append(confirm,add,cancel);panel.append(controls);
  const note=document.createElement("p");note.className="anc-source-note";
  note.textContent="La sélection ne modifie pas le dossier avant confirmation. Vérifiez la section, le numéro et le contour cadastral.";panel.append(note);
 }
@@ -321,7 +341,7 @@ function cancelMapSelection(){
  window.ANCMapRuntime?.finishParcelPick?.();
  message("Correction de parcelle annulée : l'ancienne référence est conservée.");
 }
-function confirmMapSelection(){
+function confirmMapSelection({append=false}={}){
  const pending=pendingParcelSelection;
  if(!pending||get()?.id!==pending.studyId){
    message("Aucune nouvelle parcelle sélectionnée. Cliquez d'abord sur un point de la carte.",true);return;
@@ -333,14 +353,20 @@ function confirmMapSelection(){
  const p=feature.properties||{},section=String(p.section||"").trim(),number=String(p.numero||p.number||"").trim();
  if(!section||!number)return message("Référence cadastrale incomplète dans la réponse IGN : sélection non enregistrée.",true);
  const area=normalizeArea(feature),lat=pending.lat,lng=pending.lng,studyId=pending.studyId;
- // La confirmation seule autorise à remplacer le point géocodé et l'ancienne parcelle.
- invalidateOldDetection();
+ // L’ajout conserve le point de référence et la géométrie principale du dossier.
+ if(!append)invalidateOldDetection();
  mutate(st=>{
    if(st.id!==studyId)return;
+   const reportedAt=new Date().toISOString();
+   const entry={id:create().id,label:"Parcelle sélectionnée sur la carte",section,number,area:area.area??"",
+       source:areaSource(area),checkedAt:reportedAt,status:append?"TO_CONFIRM":"AUTO_DETECTED"};
+   if(append){
+     st.parcels=st.parcels||[];
+     if(!st.parcels.some(x=>x.section===section&&x.number===number))st.parcels.push(entry);
+     return;
+   }
    const extra=(st.parcels||[]).filter(x=>x.status!=="AUTO_DETECTED"&&x.source==="Saisie manuelle"&&x.section&&x.number&&x.area!==""&&!(x.section===section&&x.number===number));
-   st.parcels=[...extra,{id:create().id,label:"Parcelle sélectionnée sur la carte",section,number,
-     area:area.area??"",source:area.exact?"Cadastre IGN — contenance source":"Cadastre IGN — surface géométrique indicative",
-     status:"AUTO_DETECTED"}];
+   st.parcels=[...extra,entry];
    st.fields["parcel.lat"]=String(lat);st.fields["parcel.lng"]=String(lng);
    st.fields["parcel.section"]=section;st.fields["parcel.number"]=number;
    st.fields["parcel.area"]=area.area===null?"":String(area.area);
@@ -357,7 +383,8 @@ function confirmMapSelection(){
  window.ANCMapRuntime?.refresh?.();
  window.ANCMapRuntime?.showParcel?.(feature);
  window.ANCMapRuntime?.finishParcelPick?.();
- window.ANCTerrainEnrichment?.refreshFromCoordinates?.();
+ if(!append)window.ANCTerrainEnrichment?.refreshFromCoordinates?.();
+ if(append){message("Parcelle "+section+" "+number+" conservée dans l’étude.");return;}
  message("Parcelle "+section+" "+number+" sélectionnée sur la carte"+(area.area===null?" (surface indisponible)":" — "+area.area+" m²")+
    ". Point enregistré ; géométrie, surface et implantation restent à confirmer.");
 }
@@ -400,32 +427,33 @@ async function geocode(){
 }
 async function detectParcel(){
   if(busy)return message("Une recherche est déjà en cours.",true);
-  const fields=get()?.fields||{};
+  const study=get(),fields=study?.fields||{};
   const lat=num(fields["parcel.lat"]),lng=num(fields["parcel.lng"]);
   if((lat===null||lng===null)&&addressReady(fields))return geocode();
   busy=true;
   try{
-    const f=path=>$('[data-path="'+path+'"]')?.value||"";
-    const lat=num(f("parcel.lat")),lng=num(f("parcel.lng"));
     if(lat===null||lng===null||lat<-90||lat>90||lng<-180||lng>180||lat===0&&lng===0)
       throw Error("Localiser d’abord le chantier ou renseigner ses coordonnées.");
     message("Interrogation du cadastre officiel…");
     const geom=JSON.stringify({type:"Point",coordinates:[lng,lat]});
     const data=await json("https://apicarto.ign.fr/api/cadastre/parcelle?geom="+encodeURIComponent(geom));
+    const current=get();
+    if(current?.id!==study?.id||num(current?.fields?.["parcel.lat"])!==lat||num(current?.fields?.["parcel.lng"])!==lng)return;
     const features=Array.isArray(data.features)?data.features:[];
     if(!features.length)throw Error("Aucune parcelle trouvée à ce point. Vérifier la position.");
     const ftr=features[0],p=ftr.properties||{};
     const area=normalizeArea(ftr);
     const section=String(p.section||p.prefixe||"");
     const number=String(p.numero||p.number||"");
-    const src=area.exact?"Cadastre IGN — contenance source":"Cadastre IGN — surface géométrique indicative";
-    const entry={id:create().id,label:"Parcelle détectée",section,number,area:area.area??"",status:"AUTO_DETECTED",source:src};
+    if(!section||!number)throw Error("Référence cadastrale indisponible dans la réponse IGN.");
+    const src=areaSource(area);
+    const entry={id:create().id,label:"Parcelle détectée",section,number,area:area.area??"",status:"AUTO_DETECTED",source:src,checkedAt:new Date().toISOString()};
     mutate(st=>{
       st.parcels=Array.isArray(st.parcels)?st.parcels:[];
       const exists=st.parcels.find(x=>x.section===section&&x.number===number&&section&&number);
       if(exists){
         exists.area=entry.area;
-        exists.source=src;exists.status="AUTO_DETECTED";
+        exists.source=src;exists.status="AUTO_DETECTED";exists.checkedAt=entry.checkedAt;
       }else if(st.parcels.length===1&&(String(st.parcels[0].source||"").startsWith("Exemple du dossier")||(st.parcels[0].area===""&&!st.parcels[0].number)))
         st.parcels[0]=entry;
       else st.parcels.push(entry);
@@ -479,6 +507,7 @@ function gps(){
 function handle(event){
   const el=event.target.closest("button");if(!el)return false;
   if(el.dataset.ancMapConfirm!==undefined){confirmMapSelection();return true;}
+  if(el.dataset.ancMapAdd!==undefined){confirmMapSelection({append:true});return true;}
   if(el.dataset.ancMapCancel!==undefined){cancelMapSelection();return true;}
   if(el.id==="anc-add-parcel"){addParcel();return true;}
   if(el.dataset.parcelDelete){removeParcel(el.dataset.parcelDelete);return true;}
@@ -517,5 +546,5 @@ document.addEventListener("change",event=>{
    if(status)status.textContent="Adresse incomplète : compléter la rue et la commune ou utiliser le GPS.";
  }
 },true);
-window.ANCGeoParcel={mount,handle,geometryArea,proposeMapPoint};
+window.ANCGeoParcel={mount,handle,geometryArea,proposeMapPoint,updateTotals};
 })();

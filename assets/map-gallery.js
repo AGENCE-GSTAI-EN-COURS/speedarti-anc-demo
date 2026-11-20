@@ -55,13 +55,30 @@ function mount(section){
    }
    card.append(details);
    const note=document.createElement("p");note.className="anc-source-note";
-   note.textContent=frozen?"Image figée du dossier. Source : "+(item.source||"à confirmer"):"Composition enregistrée dans ce navigateur. Aperçu connecté au fournisseur, non figé et non certifié.";card.append(note);
+   note.textContent=frozen?"Image figée du dossier. Source : "+(item.frozenSource||item.source||"à confirmer")+(item.frozenAt?" — "+new Date(item.frozenAt).toLocaleDateString("fr-FR"):""):"Composition enregistrée dans ce navigateur. Aperçu connecté au fournisseur, non figé et non certifié.";card.append(note);
    const actions=document.createElement("div");actions.className="anc-map-card-actions";
    const reopen=document.createElement("button");reopen.type="button";reopen.className="btn primary small";
    reopen.dataset.ancReopenMap=item.id||item.kind;reopen.textContent="Rouvrir / modifier dans Plan & métrés";
    const remove=document.createElement("button");remove.type="button";remove.className="btn secondary small";
    remove.dataset.ancRemoveMap=item.id||item.kind;remove.textContent="Retirer cette carte";
-   actions.append(reopen,remove);card.append(actions);
+   const attach=document.createElement("label");attach.textContent="Joindre une image figée";
+   const input=document.createElement("input");input.type="file";input.accept="image/jpeg,image/png,image/webp";
+   input.addEventListener("change",async ()=>{
+     const file=input.files?.[0];if(!file)return;
+     const feedback=document.createElement("p");feedback.setAttribute("role","status");card.append(feedback);
+     try{
+       const image=await window.ANCDemoEngine.imageData(file);
+       if(window.ANCRealWorkflow.getStudy()?.id!==st.id)throw new Error("Le dossier actif a changé.");
+       const saved=window.ANCRealWorkflow.mutateStudy(dossier=>{
+         const map=dossier.maps?.find(m=>m.id===item.id);
+         if(map){map.frozenImage=image;map.frozenAt=new Date().toISOString();map.frozenSource="Image fournie par l’utilisateur";}
+       });
+       if(!saved?.maps?.some(m=>m.id===item.id&&m.frozenImage===image))throw new Error("La sauvegarde a échoué.");
+       mount(section);
+     }catch(error){feedback.textContent=error.message;}
+   });
+   attach.append(input);
+   actions.append(reopen,remove,attach);card.append(actions);
    gallery.append(card);
  }
  section.querySelector(".section-head")?.insertAdjacentElement("afterend",panel);

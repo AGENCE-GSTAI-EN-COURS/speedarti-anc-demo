@@ -6,7 +6,9 @@ export default defineConfig({
   use: { baseURL: "http://127.0.0.1:4173", screenshot: "only-on-failure" },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
-    { name: "mobile", use: { ...devices["Pixel 7"] } }
+    { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "tablet", testMatch: /anc-(all-sections-audit|supabase-example|persistence-and-report)\.spec\.mjs/,
+      use: { ...devices["iPad Mini"], defaultBrowserType: "chromium" } }
   ],
   webServer: {
     command: "python3 -m http.server 4173 --bind 127.0.0.1",

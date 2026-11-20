@@ -60,25 +60,33 @@ function snapshot(book,key){
    ...(key==="Exemple"?cloned(EXAMPLE):book.sheets[key]||empty())};
 }
 function calculate(sheet){
- const D=n(sheet.diameter),P=n(sheet.depth),H=n(sheet.height),rate=n(sheet.calibration);
+ const D=n(sheet?.diameter),H=n(sheet?.height),rate=n(sheet?.calibration);
  const area=(D!==null&&D>0&&H!==null&&H>0)?Math.PI*(D/2)**2+2*Math.PI*(D/2)*H:null;
- const first=n(sheet.graduations?.[0]);
- const rowTimes=Array.isArray(sheet.times)&&sheet.times.length===sheet.graduations?.length?sheet.times:TIMES;
+ const first=n(sheet?.graduations?.[0]);
+ const graduated=Array.isArray(sheet?.graduations);
+ const rowTimes=graduated&&Array.isArray(sheet.times)&&sheet.times.length===sheet.graduations.length&&sheet.times.length
+   ?sheet.times:TIMES;
+ let previous=0;
+ let invalidTimes=n(rowTimes[0])!==0;
  const rows=rowTimes.map((time,i)=>{
    const minutes=n(time);
-   const g=n(sheet.graduations?.[i]);
-   const vol=i>0&&first!==null&&g!==null&&rate!==null&&rate>0?(first-g)*rate:null;
-   const valid=vol!==null&&vol>=0&&area!==null;
-   const k=valid&&minutes!==null&&minutes>0?60000*vol/(area*minutes):null;
-   return {minutes,graduation:g,volume:valid?vol:null,k,ms:k===null?null:k/3600000};
+   const graduation=n(sheet?.graduations?.[i]);
+   const validTime=i>0&&minutes!==null&&minutes>previous;
+   if(validTime)previous=minutes;
+   else if(i>0)invalidTimes=true;
+   const vol=i>0&&first!==null&&graduation!==null&&rate!==null&&rate>0?(first-graduation)*rate:null;
+   const volume=vol!==null&&vol>=0&&Number.isFinite(vol)?vol:null;
+   const rawK=validTime&&area&&volume!==null?60000*volume/(area*minutes):null;
+   const k=Number.isFinite(rawK)?rawK:null;
+   return {minutes,graduation,volume,k,ms:k===null?null:k/3600000};
  });
  const values=rows.slice(1).map(x=>x.k).filter(x=>x!==null);
  const mean=values.length?values.reduce((a,b)=>a+b,0)/values.length:null;
- const graphicalSlope=n(sheet.slope);
+ const graphicalSlope=n(sheet?.slope);
  const graphical=area!==null&&graphicalSlope!==null&&graphicalSlope>=0?graphicalSlope*60000/area:null;
  const hasNegative=rows.some((r,i)=>i>0&&r.graduation!==null&&first!==null&&r.graduation>first);
- return {area,rows,mean,meanMs:mean===null?null:mean/3600000,graphical,graphicalMs:graphical===null?null:graphical/3600000,hasNegative,
-   complete:rows.slice(1).some(x=>x.k!==null)&&rows.slice(1).every(x=>x.minutes===0||x.k!==null)};
+ return {area,rows,mean,meanMs:mean===null?null:mean/3600000,graphical,graphicalMs:graphical===null?null:graphical/3600000,hasNegative,invalidTimes,
+   complete:!invalidTimes&&rows.length>1&&rows.slice(1).every(x=>x.k!==null)};
 }
 function linkPrivate(st,book){
  if(!st||!Array.isArray(st.porchets))return;
@@ -87,15 +95,13 @@ function linkPrivate(st,book){
  const s=book.sheets[tab],computed=calculate(s);
  const hasInputs=s&&[s.diameter,s.height,s.graduations?.[0],...s.graduations?.slice(1)||[]].some(v=>String(v||"").trim()!=="");
  if(!hasInputs)return;
- // La nouvelle page Excel remplace les anciens essais actifs sans effacer l’historique.
- // Sauvegarde réversible des anciens tests dans le dossier, effectuée une seule fois.
- if(!book.legacyMigrated){
-   book.legacyPorchets=cloned(st.porchets);
-   st.porchets=[];
-   book.legacyMigrated=true;
+ // Réintégrer les essais écartés par les anciennes versions, sans écraser une édition récente.
+ for(const legacy of book.legacyPorchets||[]){
+   if(legacy?.id&&!st.porchets.some(existing=>existing.id===legacy.id)){
+     st.porchets.push(cloned(legacy));
+   }
  }
  let p=st.porchets.find(x=>x.excelKey===tab);
- if(!p)p=st.porchets.find(x=>x.label===tab.replace("P","")&&!x.excelKey);
  if(!p){
    p={id:"porchet_excel_"+tab,label:tab.replace("P",""),readings:[],method:"constant_level",inputMode:"graduation",
      retention:"mean",depth:"",diameterCm:"",waterHeightCm:"",calibrationSource:"Tableur Porchet Fred — facteur saisi",
@@ -118,8 +124,9 @@ function linkPrivate(st,book){
    volumeMl:"",excluded:false,notes:"",startLevelCm:"",endLevelCm:"",waterLevelCm:""
  }));
  p.calculatedK=computed.mean??"";
- p.retainedK=computed.mean??"";
- p.permeability=computed.mean??"";
+ p.formulaValidated=false;
+ p.retainedK=computed.complete?computed.mean??"":"";
+ p.permeability=p.retainedK;
  p.graphicalK=computed.graphical??"";
  p.stability="Calcul Excel indicatif — validation requise";
  p.interpretation="K moyen calculé avec la formule du fichier Excel fourni par Fred. Validation professionnelle requise.";
@@ -147,7 +154,7 @@ function shell(book,key){
      '<td>'+format(out.volume,3)+'</td><td>'+format(out.k,3)+'</td><td>'+fmtTiny(out.ms)+'</td></tr>';
  }).join("");
  const nav=KEYS.map(k=>'<button type="button" class="px-tab '+(k===key?"active":"")+'" data-px-tab="'+k+'">'+k+'</button>').join("");
- const message=r.hasNegative?'Une graduation est supérieure à la graduation initiale. Vérifier la saisie.':
+ const message=r.invalidTimes?"Les temps doivent commencer à 0 et augmenter à chaque relevé.":r.hasNegative?'Une graduation est supérieure à la graduation initiale. Vérifier la saisie.':
    !r.complete&&key!=="Exemple"?'Compléter les cases jaunes pour obtenir le résultat.':
    'Résultat indicatif calculé automatiquement — validation professionnelle obligatoire.';
  const graph=chart(r.rows);

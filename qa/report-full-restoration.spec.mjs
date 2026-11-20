@@ -14,6 +14,7 @@ test("Rapport ANC : restaure un vrai dossier multipage depuis le client, pas une
  await page.locator('#public-tabs [data-tab="rapport"]').click();
  const pages=page.locator("#report-pages>.a4");
  await expect(pages.first()).toBeVisible({timeout:15000});
+ await expect(page.locator("#report-pages")).toHaveAttribute("data-report-mode","dossier");
  const count=await pages.count();
  expect(count).toBeGreaterThanOrEqual(24);
  await expect(page.locator("#anc-report-page-counter")).toContainText("pages A4");
@@ -34,6 +35,7 @@ test("Ancien modèle restauré : accès distinct à ses 29 pages, clairement ide
  await page.goto("/#rapport");
  const pages=page.locator("#report-pages>.a4");
  await expect(pages.first()).toBeVisible();
+ await expect(page.locator("#report-pages")).toHaveAttribute("data-report-mode","dossier");
  await page.locator('[data-anc-report-view="historique"]').click();
  await expect(pages).toHaveCount(29);
  await expect(page.locator("#report-pages")).toHaveAttribute("data-report-mode","historique");
@@ -63,6 +65,7 @@ test("Export Word compatible réel : téléchargement du dossier en .doc, non un
 
 test("L'impression ne masque aucune page A4 et affiche une page par feuille",async({page})=>{
  await page.goto("/#rapport");
+ await expect(page.locator("#report-pages")).toHaveAttribute("data-report-mode","dossier");
  const count=await page.locator("#report-pages>.a4").count();
  await page.emulateMedia({media:"print"});
  const state=await page.locator("#report-pages>.a4").evaluateAll(nodes=>nodes.map(el=>({
